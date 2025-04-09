@@ -1,0 +1,52 @@
+# React Native
+node_modules/
+npm-debug.log
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.orig.*
+*.swp
+.DS_Store
+.idea/
+.vscode/
+android/app/debug.keystore
+*.iml
+.gradle/
+build/
+android/.gradle
+android/app/build/
+ios/build/
+ios/Pods/
+*.pbxuser
+!default.pbxuser
+*.mode1v3
+!default.mode1v3
+*.mode2v3
+!default.mode2v3
+*.perspectivev3
+!default.perspectivev3
+xcuserdata/
+*.xcodeproj/*
+!*.xcodeproj/project.pbxproj
+!*.xcodeproj/xcshareddata/
+*.xcworkspace/
+!*.xcworkspace/contents.xcworkspacedata
+*.xcuserstate
+
+# macOS / Xcode
+*.xcuserdatad
+*.xcscmblueprint
+
+# Environment files
+.env
+.env.*
+
+# Expo
+.expo/
+.expo-shared/
+
+# Supabase (če uporabljaš CLI)
+supabase/.env
+supabase/config.toml
