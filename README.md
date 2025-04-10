@@ -1,17 +1,10 @@
-# Kofi
-Coffee review sharing app
+# ☕️Kofi
+# Funkcionalnosti verzije alpha:
 
-# ☕️ 1. Ideja & osnovna funkcionalnost
-Osnovna funkcionalnost MVP (Minimum Viable Product):
+Registracija in prijava
 
-Registracija/uporaba računa
+Deljenje fotografij na feed
 
-Dodajanje kav (npr. espresso, cold brew...)
+Ocena kave
 
-Dodajanje lokacij (kavarne, domače kave itd.)
-
-Ocenjevanje kav (zvezdice, opombe, morda slika)
-
-Iskanje drugih uporabnikov in kav
-
-Feed (kaj so drugi pili, komentirali itd.)
+Opis kave
