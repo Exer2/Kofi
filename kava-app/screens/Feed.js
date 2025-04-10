@@ -252,6 +252,7 @@ export default function Feed() {
         ListEmptyComponent={<Text style={styles.emptyText}>Ni objav za prikaz.</Text>}
         refreshing={refreshing}
         onRefresh={onRefresh}
+        showsVerticalScrollIndicator={false} 
       />
       <TouchableOpacity style={styles.addButton} onPress={handleAddImage}>
         <Text style={styles.addButtonText}>Dodaj sliko</Text>
