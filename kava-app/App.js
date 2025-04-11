@@ -14,7 +14,7 @@ const Stack = createStackNavigator();
 function HomeScreen({ navigation }) {
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Kafica is a go</Text>
+      <Text style={styles.title}>Kofi</Text>
       <TouchableOpacity 
         style={styles.circleButton}
         onPress={() => navigation.navigate('Login')}

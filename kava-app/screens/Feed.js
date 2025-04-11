@@ -28,6 +28,8 @@ export default function Feed() {
   const [isUploading, setIsUploading] = useState(false);
   const [isImageLoading, setIsImageLoading] = useState(false);
   const [loadingImages, setLoadingImages] = useState({});
+  const [selectedPost, setSelectedPost] = useState(null);
+  const [profileData, setProfileData] = useState(null);
 
   // Fetch posts from the database
   const fetchPosts = async () => {
@@ -40,6 +42,25 @@ export default function Feed() {
     } catch (err) {
       console.error('Error fetching posts:', err);
       setError('Napaka pri nalaganju objav.');
+    }
+  };
+
+  // Add this new function to fetch user profile
+  const fetchUserProfile = async () => {
+    try {
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError) throw userError;
+
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('username')
+        .eq('id', user.id)
+        .single();
+
+      if (profileError) throw profileError;
+      setProfileData(profile);
+    } catch (err) {
+      console.error('Error fetching user profile:', err);
     }
   };
 
@@ -168,6 +189,39 @@ export default function Feed() {
     }
   };
 
+  const handleDelete = async (postId, imageUrl) => {
+    try {
+      // Get current user
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError) throw userError;
+
+      // Extract filename from URL
+      const fileName = imageUrl.split('/').pop();
+
+      // Delete from storage
+      const { error: storageError } = await supabase.storage
+        .from('posts')
+        .remove([fileName]);
+      if (storageError) throw storageError;
+
+      // Delete from database
+      const { error: deleteError } = await supabase
+        .from('posts')
+        .delete()
+        .eq('id', postId);
+      if (deleteError) throw deleteError;
+
+      // Close modal and refresh feed
+      setSelectedImage(null);
+      setSelectedPost(null);
+      fetchPosts();
+      Alert.alert('Uspeh', 'Objava je bila izbrisana.');
+    } catch (err) {
+      console.error('Error deleting post:', err);
+      Alert.alert('Napaka', 'Napaka pri brisanju objave.');
+    }
+  };
+
   const onRefresh = React.useCallback(async () => {
     setRefreshing(true);
     try {
@@ -181,12 +235,16 @@ export default function Feed() {
 
   useEffect(() => {
     fetchPosts();
+    fetchUserProfile(); // Add this line
   }, []);
 
   const renderPost = ({ item }) => (
     <View style={styles.postContainer}>
       <Text style={styles.username}>{item.username}</Text>
-      <TouchableOpacity onPress={() => setSelectedImage(item.image_url)}>
+      <TouchableOpacity onPress={() => {
+        setSelectedImage(item.image_url);
+        setSelectedPost(item);
+      }}>
         <View>
           <Image 
             source={{ uri: item.image_url }} 
@@ -313,15 +371,47 @@ export default function Feed() {
       <Modal
         visible={!!selectedImage}
         transparent={true}
-        onRequestClose={() => setSelectedImage(null)}
+        onRequestClose={() => {
+          setSelectedImage(null);
+          setSelectedPost(null);
+        }}
       >
         <View style={styles.fullImageContainer}>
           <TouchableOpacity 
             style={styles.closeButton}
-            onPress={() => setSelectedImage(null)}
+            onPress={() => {
+              setSelectedImage(null);
+              setSelectedPost(null);
+            }}
           >
             <Text style={styles.closeButtonText}>✕</Text>
           </TouchableOpacity>
+
+          {selectedPost && selectedPost.username === profileData?.username && (
+            <TouchableOpacity 
+              style={styles.deleteButton}
+              onPress={() => {
+                Alert.alert(
+                  'Izbriši objavo',
+                  'Ali ste prepričani, da želite izbrisati to objavo?',
+                  [
+                    {
+                      text: 'Prekliči',
+                      style: 'cancel',
+                    },
+                    {
+                      text: 'Izbriši',
+                      onPress: () => handleDelete(selectedPost.id, selectedPost.image_url),
+                      style: 'destructive',
+                    },
+                  ]
+                );
+              }}
+            >
+              <Text style={styles.deleteButtonText}>Izbriši</Text>
+            </TouchableOpacity>
+          )}
+
           {selectedImage && (
             <>
               <Image
@@ -520,5 +610,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderRadius: 8, // Match the image borderRadius
+  },
+  deleteButton: {
+    position: 'absolute',
+    bottom: 40,
+    padding: 15,
+    backgroundColor: '#dc3545',
+    borderRadius: 8,
+    zIndex: 1,
+  },
+  deleteButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
