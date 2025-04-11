@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, TextInput, StyleSheet, Text, TouchableOpacity, Alert } from 'react-native';
+import { View, TextInput, StyleSheet, Text, TouchableOpacity, Alert, Platform, KeyboardAvoidingView } from 'react-native';
 import supabase from '../backend/supabase';
 
 export default function Register({ navigation }) {
@@ -46,56 +46,65 @@ export default function Register({ navigation }) {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Registracija</Text>
-      
-      <TextInput
-        style={styles.input}
-        placeholder="Vzdevek"
-        placeholderTextColor="#888"
-        value={username}
-        onChangeText={setUsername}
-        autoCapitalize="none"
-      />
-      
-      <TextInput
-        style={styles.input}
-        placeholder="E-naslov"
-        placeholderTextColor="#888"
-        value={email}
-        onChangeText={setEmail}
-        keyboardType="email-address"
-        autoCapitalize="none"
-      />
-      
-      <TextInput
-        style={styles.input}
-        placeholder="Geslo"
-        placeholderTextColor="#888"
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-        autoCapitalize="none"
-      />
-      
-      {error && <Text style={styles.error}>{error}</Text>}
-      
-      <TouchableOpacity style={styles.button} onPress={handleRegister}>
-        <Text style={styles.buttonText}>Ustvari račun</Text>
-      </TouchableOpacity>
-      
-      <TouchableOpacity style={styles.loginLink} onPress={() => navigation.navigate('Login')}>
-        <Text style={styles.loginText}>Že imaš račun? Prijavi se</Text>
-      </TouchableOpacity>
-    </View>
+    <KeyboardAvoidingView 
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      style={{ flex: 1 }}
+    >
+      <View style={[
+        styles.container,
+        Platform.select({
+          android: { marginTop: 0, justifyContent: 'flex-start', paddingTop: 60 },
+          ios: { marginTop: -180, justifyContent: 'center' }
+        })
+      ]}>
+        <Text style={styles.title}>Registracija</Text>
+        
+        <TextInput
+          style={styles.input}
+          placeholder="Vzdevek"
+          placeholderTextColor="#888"
+          value={username}
+          onChangeText={setUsername}
+          autoCapitalize="none"
+        />
+        
+        <TextInput
+          style={styles.input}
+          placeholder="E-naslov"
+          placeholderTextColor="#888"
+          value={email}
+          onChangeText={setEmail}
+          keyboardType="email-address"
+          autoCapitalize="none"
+        />
+        
+        <TextInput
+          style={styles.input}
+          placeholder="Geslo"
+          placeholderTextColor="#888"
+          value={password}
+          onChangeText={setPassword}
+          secureTextEntry
+          autoCapitalize="none"
+        />
+        
+        {error && <Text style={styles.error}>{error}</Text>}
+        
+        <TouchableOpacity style={styles.button} onPress={handleRegister}>
+          <Text style={styles.buttonText}>Ustvari račun</Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity style={styles.loginLink} onPress={() => navigation.navigate('Login')}>
+          <Text style={styles.loginText}>Že imaš račun? Prijavi se</Text>
+        </TouchableOpacity>
+      </View>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
-    marginTop: -180,
     padding: 24,
     backgroundColor: '#fff',
   },

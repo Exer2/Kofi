@@ -235,7 +235,7 @@ export default function Feed() {
 
   useEffect(() => {
     fetchPosts();
-    fetchUserProfile(); // Add this line
+    fetchUserProfile();
   }, []);
 
   const renderPost = ({ item }) => (
@@ -313,7 +313,7 @@ export default function Feed() {
         showsVerticalScrollIndicator={false} 
       />
       <TouchableOpacity style={styles.addButton} onPress={handleAddImage}>
-        <Text style={styles.addButtonText}>Dodaj sliko</Text>
+        <Text style={styles.addButtonText}>Objavi kavico</Text>
       </TouchableOpacity>
       {error && <Text style={styles.error}>{error}</Text>}
       
