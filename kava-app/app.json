@@ -4,25 +4,44 @@
     "slug": "kava-app",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/KavniJunak.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
+    "scheme": "kavaapp",
+    "owner": "mato24",
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/KavniJunak.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
     "ios": {
+      "bundleIdentifier": "com.yourcompany.kavaapp",
       "supportsTablet": true
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "package": "com.yourcompany.kavaapp"
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Dovoli dostop do galerije za objavljanje slik.",
+          "cameraPermission": "Dovoli dostop do kamere za fotografiranje.",
+          "microphonePermission": false
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "2bd36b97-9e02-4ed3-b62d-35ac03e4db53"
+      }
     }
   }
 }

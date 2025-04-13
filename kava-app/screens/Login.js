@@ -1,13 +1,43 @@
-import React, { useState } from 'react';
-import { View, TextInput, StyleSheet, Text, TouchableOpacity, Platform, KeyboardAvoidingView } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, TextInput, Text, TouchableOpacity, Platform, KeyboardAvoidingView, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import * as Linking from 'expo-linking';
 import supabase from '../backend/supabase';
+import { authStyles } from '../Styles/authStyles';
 
 export default function Login() {
   const navigation = useNavigation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState(null);
+
+  useEffect(() => {
+    // Handle deep linking
+    const handleDeepLink = (event) => {
+      let url = event.url;
+      if (url.includes('error=access_denied') || url.includes('error_code=otp_expired')) {
+        Alert.alert(
+          'Povezava je potekla',
+          'Prosimo, poskusite se ponovno prijaviti ali zahtevajte novo potrditveno povezavo.',
+          [{ text: 'V redu' }]
+        );
+      }
+    };
+
+    // Add event listener for deep linking
+    const subscription = Linking.addEventListener('url', handleDeepLink);
+
+    // Check for initial URL
+    Linking.getInitialURL().then(url => {
+      if (url) {
+        handleDeepLink({ url });
+      }
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, []);
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -17,14 +47,17 @@ export default function Login() {
     try {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) {
-        setError(error.message);
+        if (error.message.includes('Email not confirmed')) {
+          setError('Email še ni potrjen. Prosimo, potrdite email naslov.');
+          return;
+        }
+        setError('Napačen email ali geslo.');
         return;
       }
-      console.log('Login successful');
-      navigation.navigate('Feed'); // Navigate to the Feed screen after successful login
+      navigation.navigate('Feed');
     } catch (error) {
       console.error('Login error:', error);
-      setError('An unexpected error occurred. Please try again.');
+      setError('Prišlo je do napake. Prosimo, poskusite ponovno.');
     }
   };
 
@@ -34,16 +67,13 @@ export default function Login() {
       style={{ flex: 1 }}
     >
       <View style={[
-        styles.container, 
-        Platform.select({
-          android: { marginTop: 0, justifyContent: 'flex-start', paddingTop: 60 },
-          ios: { marginTop: -180, justifyContent: 'center' }
-        })
+        authStyles.container, 
+        Platform.select(authStyles.containerWithPlatform)
       ]}>
-        <Text style={styles.title}>Prijava</Text>
+        <Text style={authStyles.title}>Prijava</Text>
         
         <TextInput
-          style={styles.input}
+          style={authStyles.input}
           placeholder="E-naslov"
           placeholderTextColor="#888"
           value={email}
@@ -53,7 +83,7 @@ export default function Login() {
         />
         
         <TextInput
-          style={styles.input}
+          style={authStyles.input}
           placeholder="Geslo"
           placeholderTextColor="#888"
           value={password}
@@ -62,66 +92,16 @@ export default function Login() {
           autoCapitalize="none"
         />
         
-        {error && <Text style={styles.error}>{error}</Text>}
+        {error && <Text style={authStyles.error}>{error}</Text>}
         
-        <TouchableOpacity style={styles.button} onPress={handleLogin}>
-          <Text style={styles.buttonText}>Prijavi se</Text>
+        <TouchableOpacity style={authStyles.button} onPress={handleLogin}>
+          <Text style={authStyles.buttonText}>Prijavi se</Text>
         </TouchableOpacity>
         
-        <TouchableOpacity style={styles.registerLink} onPress={() => navigation.navigate('Register')}>
-          <Text style={styles.registerText}>Še nimaš računa? Registriraj se</Text>
+        <TouchableOpacity style={authStyles.linkContainer} onPress={() => navigation.navigate('Register')}>
+          <Text style={authStyles.linkText}>Še nimaš računa? Registriraj se</Text>
         </TouchableOpacity>
       </View>
     </KeyboardAvoidingView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 24,
-    backgroundColor: '#fff',
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    marginBottom: 30,
-    textAlign: 'center',
-  },
-  input: {
-    height: 50,
-    borderColor: '#ddd',
-    borderWidth: 1,
-    borderRadius: 8,
-    marginBottom: 16,
-    paddingHorizontal: 16,
-    fontSize: 16,
-    backgroundColor: '#f9f9f9',
-  },
-  error: {
-    color: 'red',
-    marginBottom: 16,
-    textAlign: 'center',
-  },
-  button: {
-    backgroundColor: 'black',
-    paddingVertical: 14,
-    paddingHorizontal: 24,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginTop: 10,
-  },
-  buttonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  registerLink: {
-    marginTop: 20,
-    alignItems: 'center',
-  },
-  registerText: {
-    color: '#007BFF',
-    fontSize: 14,
-  }
-});
