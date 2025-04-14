@@ -26,6 +26,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import MyCommentIcon from '../Styles/ikonce';
 import HeartOutlineIcon from '../Styles/HeartOutlineIcon';
 import HeartFilledIcon from '../Styles/HeartFilledIcon';
+import { Swipeable } from 'react-native-gesture-handler';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -52,6 +53,7 @@ export default function Feed() {
   const [selectedPostForComment, setSelectedPostForComment] = useState(null);
   const [loadingComments, setLoadingComments] = useState(false);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
 
   const fetchPosts = async () => {
     try {
@@ -423,18 +425,93 @@ export default function Feed() {
     }
   };
 
+  const deleteComment = async (commentId, postId) => {
+    try {
+      // Get the current user
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError) throw userError;
+      
+      // Delete the comment
+      const { error } = await supabase
+        .from('comments')
+        .delete()
+        .match({ id: commentId, user_id: user.id });
+        
+      if (error) throw error;
+      
+      // Update local state by removing the deleted comment
+      setComments(prevComments => {
+        const updatedComments = { ...prevComments };
+        if (updatedComments[postId]) {
+          updatedComments[postId] = updatedComments[postId].filter(
+            comment => comment.id !== commentId
+          );
+        }
+        return updatedComments;
+      });
+      
+    } catch (err) {
+      console.error('Error deleting comment:', err);
+      Alert.alert('Napaka', 'Napaka pri brisanju komentarja.');
+    }
+  };
+
+  const renderRightActions = (commentId, userId, postId, progress) => {
+    const trans = progress.interpolate({
+      inputRange: [0, 1],
+      outputRange: [80, 0],
+    });
+    
+    return (
+      <Animated.View 
+        style={[
+          feedStyles.deleteActionContainer,
+          { transform: [{ translateX: trans }] }
+        ]}
+      >
+        <TouchableOpacity
+          style={feedStyles.deleteButton}
+          onPress={() => deleteComment(commentId, postId)}
+        >
+          <Text style={feedStyles.deleteButtonText}>Izbriši</Text>
+        </TouchableOpacity>
+      </Animated.View>
+    );
+  };
+
+  const renderComment = (comment) => {
+    const canDelete = currentUser && currentUser.id === comment.user_id;
+    
+    return (
+      <View style={feedStyles.swipeableCommentContainer}>
+        {/* Separator line with consistent spacing */}
+        <View style={feedStyles.commentSeparatorLine} />
+      
+        <Swipeable
+          renderRightActions={(progress) => 
+            canDelete ? renderRightActions(comment.id, comment.user_id, comment.post_id, progress) : null
+          }
+          friction={2}
+          rightThreshold={40}
+          overshootRight={false}
+        >
+          <View style={[
+            feedStyles.commentItem, 
+            feedStyles.commentItemModified
+          ]} key={comment.id}>
+            <Text style={feedStyles.commentUsername}>{comment.username}</Text>
+            <Text style={feedStyles.commentContent}>{comment.content}</Text>
+          </View>
+        </Swipeable>
+      </View>
+    );
+  };
+
   const showCommentModal = (postId) => {
     setSelectedPostForComment(postId);
     fetchComments(postId);
     setCommentModalVisible(true);
   };
-
-  const renderComment = (comment) => (
-    <View style={feedStyles.commentItem} key={comment.id}>
-      <Text style={feedStyles.commentUsername}>{comment.username}</Text>
-      <Text style={feedStyles.commentContent}>{comment.content}</Text>
-    </View>
-  );
 
   const onRefresh = React.useCallback(async () => {
     setRefreshing(true);
@@ -451,6 +528,18 @@ export default function Feed() {
     fetchPosts();
     fetchUserProfile();
     fetchLikes();
+    
+    const getCurrentUser = async () => {
+      try {
+        const { data, error } = await supabase.auth.getUser();
+        if (error) throw error;
+        setCurrentUser(data.user);
+      } catch (err) {
+        console.error('Error fetching current user:', err);
+      }
+    };
+    
+    getCurrentUser();
     
     // Subscribe to posts table changes
     const postSubscription = supabase
@@ -889,13 +978,9 @@ export default function Feed() {
               <TouchableWithoutFeedback onPress={(e) => e.stopPropagation()}>
                 <View style={[
                   feedStyles.modalContent, 
-                  { 
-                    maxHeight: '80%',
-                    position: 'relative',
-                    marginTop: Platform.OS === 'android' 
-                      ? (keyboardVisible ? 220 : 550)
-                      : (keyboardVisible ? 140 : 420),
-                  }
+                  Platform.OS === 'android' 
+                    ? { ...feedStyles.commentModalContentAndroid(keyboardVisible) }
+                    : { ...feedStyles.commentModalContentIOS(keyboardVisible) }
                 ]}>
                   <View style={feedStyles.commentsHeader}>
                     <Text style={feedStyles.commentsTitle}>Komentarji</Text>

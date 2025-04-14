@@ -1,4 +1,4 @@
-import { StyleSheet } from 'react-native';
+import { Platform, StyleSheet } from 'react-native';
 
 export const feedStyles = StyleSheet.create({
   container: {
@@ -276,7 +276,7 @@ export const feedStyles = StyleSheet.create({
     top: 16,
   },
   commentItem: {
-    marginBottom: 16,
+    marginBottom: 10,
     padding: 10,
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
@@ -307,6 +307,7 @@ export const feedStyles = StyleSheet.create({
   },
   addCommentContainer: {
     padding: 16,
+    paddingBottom: Platform.OS === 'android' ? 24 : 16, // Extra padding on Android
     borderTopWidth: 1,
     borderTopColor: '#eee',
     flexDirection: 'row',
@@ -353,7 +354,7 @@ export const feedStyles = StyleSheet.create({
     fontWeight: 'bold',
   },
   closeCommentModalButton: {
-    marginTop: 15,
+    marginTop: 10,
     alignSelf: 'center',
     padding: 10,
   },
@@ -367,4 +368,56 @@ export const feedStyles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'flex-end',
   },
+  swipeableCommentContainer: {
+    position: 'relative', 
+    marginBottom: 10,
+  },
+  commentSeparatorLine: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: -80, // Extend to include delete button
+    height: 1,
+    backgroundColor: '#e0e0e0',
+    zIndex: 1,
+  },
+  commentItemModified: {
+    borderBottomWidth: 0,
+    paddingTop: 2,
+    paddingBottom: 12,
+    marginBottom: 0,
+    marginTop: 0,
+  },
+  deleteActionContainer: {
+    width: 80,
+    flexDirection: 'row',
+    alignItems: 'center',
+    height: '100%',
+    paddingVertical: 10,
+  },
+  deleteButton: {
+    backgroundColor: '#ff4444',
+    justifyContent: 'center',
+    flex: 1,
+    height: '110%',
+    marginTop: -12,
+    borderRadius: 10,
+  },
+  deleteButtonText: {
+    color: 'white', 
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
+  commentModalContentAndroid: (keyboardVisible) => ({
+    maxHeight: '80%',
+    position: 'relative',
+    marginTop: keyboardVisible ? 95 : 350,
+    paddingBottom: 20,
+  }),
+  commentModalContentIOS: (keyboardVisible) => ({
+    maxHeight: '80%',
+    position: 'relative',
+    marginTop: keyboardVisible ? 140 : 420,
+    paddingBottom: 0,
+  }),
 });
