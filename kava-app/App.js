@@ -1,21 +1,94 @@
-import React from 'react';
-import { StyleSheet, Text, View, Button, TouchableOpacity  } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { StyleSheet, Text, View, Button, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
-import Login from './screens/Login'; 
-import { useNavigation } from '@react-navigation/native';
+import * as SplashScreen from 'expo-splash-screen';
+import 'react-native-url-polyfill/auto';
+import { LogBox } from 'react-native';
+import Login from './screens/Login';
 import Register from './screens/Register';
-import api from './services/api'; 
 import Feed from './screens/Feed';
 import { Ionicons } from '@expo/vector-icons';
 
+// Keep the splash screen visible while we fetch resources
+SplashScreen.preventAutoHideAsync();
+
+if (!__DEV__) {
+  // Production-only code
+  console.log = () => {}; // Disable console logs in production
+  LogBox.ignoreAllLogs(); // Ignore warnings in production
+}
+
 const Stack = createStackNavigator();
 
+export default function App() {
+  const [isReady, setIsReady] = useState(false);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    async function prepare() {
+      try {
+        // Add any initialization code here
+        // For example, check auth status, preload data, etc.
+        
+        // Artificial delay to show splash screen (can remove this in production)
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+      } catch (e) {
+        console.warn(e);
+        setError(e);
+      } finally {
+        // Tell the application to render
+        setIsReady(true);
+        // Hide splash screen
+        await SplashScreen.hideAsync();
+      }
+    }
+
+    prepare();
+  }, []);
+
+  // Show loading indicator if still preparing
+  if (!isReady) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" color="#0000ff" />
+      </View>
+    );
+  }
+
+  // Show error screen if something went wrong
+  if (error) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+        <Text style={{ color: 'red' }}>Error: {error.message}</Text>
+      </View>
+    );
+  }
+
+  // Main app rendering
+  return (
+    <NavigationContainer>
+      <Stack.Navigator initialRouteName="Home">
+        <Stack.Screen 
+          name="Home" 
+          component={HomeScreen} 
+          options={{ headerShown: false }} 
+        />
+        <Stack.Screen name="Login" component={Login} />
+        <Stack.Screen name="Register" component={Register} />
+        <Stack.Screen name="Feed" component={Feed} />
+      </Stack.Navigator>
+    </NavigationContainer>
+  );
+}
+
+// Your HomeScreen component remains the same
 function HomeScreen({ navigation }) {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Kofi</Text>
-      <TouchableOpacity 
+      <TouchableOpacity
         style={styles.circleButton}
         onPress={() => navigation.navigate('Login')}
       >
@@ -25,26 +98,13 @@ function HomeScreen({ navigation }) {
   );
 }
 
-export default function App() {
-  return (
-    <NavigationContainer>
-      <Stack.Navigator initialRouteName="Home">
-        <Stack.Screen name="Home" component={HomeScreen} />
-        <Stack.Screen name="Login" component={Login}/>
-        <Stack.Screen name="Register" component={Register}/>
-        <Stack.Screen name="Feed" component={Feed} />
-      </Stack.Navigator>
-    </NavigationContainer>
-  );
-}
-
-
+// Your styles
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: -150, 
+    marginTop: -150,
     padding: 24,
     backgroundColor: '#fff',
   },
@@ -64,7 +124,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 3,
-  }
+  },
 });
 
 
