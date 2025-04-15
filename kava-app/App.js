@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, Button, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { Text, View, TouchableOpacity, ActivityIndicator, ImageBackground } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import * as SplashScreen from 'expo-splash-screen';
@@ -9,6 +9,7 @@ import Login from './screens/Login';
 import Register from './screens/Register';
 import Feed from './screens/Feed';
 import { Ionicons } from '@expo/vector-icons';
+import { appStyles } from './Styles/styles';
 
 // Keep the splash screen visible while we fetch resources
 SplashScreen.preventAutoHideAsync();
@@ -29,18 +30,12 @@ export default function App() {
     async function prepare() {
       try {
         // Add any initialization code here
-        // For example, check auth status, preload data, etc.
-        
-        // Artificial delay to show splash screen (can remove this in production)
         await new Promise(resolve => setTimeout(resolve, 1000));
-        
       } catch (e) {
         console.warn(e);
         setError(e);
       } finally {
-        // Tell the application to render
         setIsReady(true);
-        // Hide splash screen
         await SplashScreen.hideAsync();
       }
     }
@@ -51,7 +46,7 @@ export default function App() {
   // Show loading indicator if still preparing
   if (!isReady) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+      <View style={appStyles.loadingContainer}>
         <ActivityIndicator size="large" color="#0000ff" />
       </View>
     );
@@ -60,8 +55,8 @@ export default function App() {
   // Show error screen if something went wrong
   if (error) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
-        <Text style={{ color: 'red' }}>Error: {error.message}</Text>
+      <View style={appStyles.errorContainer}>
+        <Text style={appStyles.errorText}>Error: {error.message}</Text>
       </View>
     );
   }
@@ -83,48 +78,26 @@ export default function App() {
   );
 }
 
-// Your HomeScreen component remains the same
 function HomeScreen({ navigation }) {
+  const backgroundImage = require('./assets/ozadjeKofi.png');
+  
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Kofi</Text>
-      <TouchableOpacity
-        style={styles.circleButton}
-        onPress={() => navigation.navigate('Login')}
-      >
-        <Ionicons name="arrow-forward" size={24} color="white" />
-      </TouchableOpacity>
-    </View>
+    <ImageBackground 
+      source={backgroundImage} 
+      style={appStyles.backgroundImage}
+      resizeMode="cover"
+    >
+      <View style={appStyles.container}>
+        <Text style={appStyles.title}>Kofi</Text>
+        <TouchableOpacity
+          style={appStyles.circleButton}
+          onPress={() => navigation.navigate('Login')}
+        >
+          <Ionicons name="arrow-forward" size={30} color="white" /> 
+        </TouchableOpacity>
+      </View>
+    </ImageBackground>
   );
 }
-
-// Your styles
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: -150,
-    padding: 24,
-    backgroundColor: '#fff',
-  },
-  title: {
-    fontSize: 24,
-    marginBottom: 30, // Prostor med napisom in gumbom
-  },
-  circleButton: {
-    backgroundColor: 'black',
-    width: 60,
-    height: 60,
-    borderRadius: 30, // Polovica širine/višine za popoln krog
-    justifyContent: 'center',
-    alignItems: 'center',
-    elevation: 5, // Shadow za Android
-    shadowColor: '#000', // Shadow za iOS
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 3,
-  },
-});
 
 

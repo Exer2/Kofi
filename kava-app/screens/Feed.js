@@ -225,7 +225,7 @@ export default function Feed() {
       const result = await ImagePicker.launchCameraAsync({
         allowsEditing: true,
         aspect: [1, 1],
-        quality: 0.8,
+        quality: 0.7,
       });
 
       if (!result.canceled) {
@@ -470,10 +470,10 @@ export default function Feed() {
         ]}
       >
         <TouchableOpacity
-          style={feedStyles.deleteButton}
+          style={feedStyles.commentDeleteButton}
           onPress={() => deleteComment(commentId, postId)}
         >
-          <Text style={feedStyles.deleteButtonText}>Izbriši</Text>
+          <Text style={feedStyles.commentDeleteButtonText}>Izbriši</Text>
         </TouchableOpacity>
       </Animated.View>
     );
@@ -484,17 +484,25 @@ export default function Feed() {
     
     return (
       <View style={feedStyles.swipeableCommentContainer}>
-        {/* Separator line with consistent spacing */}
         <View style={feedStyles.commentSeparatorLine} />
-      
-        <Swipeable
-          renderRightActions={(progress) => 
-            canDelete ? renderRightActions(comment.id, comment.user_id, comment.post_id, progress) : null
-          }
-          friction={2}
-          rightThreshold={40}
-          overshootRight={false}
-        >
+        {canDelete ? (
+          <Swipeable
+            renderRightActions={(progress) => 
+              renderRightActions(comment.id, comment.user_id, comment.post_id, progress)
+            }
+            friction={2}
+            rightThreshold={40}
+            overshootRight={false}
+          >
+            <View style={[
+              feedStyles.commentItem, 
+              feedStyles.commentItemModified
+            ]} key={comment.id}>
+              <Text style={feedStyles.commentUsername}>{comment.username}</Text>
+              <Text style={feedStyles.commentContent}>{comment.content}</Text>
+            </View>
+          </Swipeable>
+        ) : (
           <View style={[
             feedStyles.commentItem, 
             feedStyles.commentItemModified
@@ -502,7 +510,7 @@ export default function Feed() {
             <Text style={feedStyles.commentUsername}>{comment.username}</Text>
             <Text style={feedStyles.commentContent}>{comment.content}</Text>
           </View>
-        </Swipeable>
+        )}
       </View>
     );
   };
@@ -633,7 +641,6 @@ export default function Feed() {
       )
       .subscribe();
 
-    // Also fix the comment subscription for consistency
     const commentSubscription = supabase
       .channel('comments_channel')
       .on('postgres_changes',
@@ -727,77 +734,79 @@ export default function Feed() {
     };
   }, []);
 
-  const renderPost = ({ item }) => (
-    <View style={feedStyles.postContainer}>
-      <Text style={feedStyles.username}>{item.username}</Text>
-      <TouchableOpacity 
-        activeOpacity={1}
-        onPress={() => {
-          console.log('Image pressed for post:', item.id);
-          setSelectedImage(item.image_url);
-          setSelectedPost(item);
-        }}
-      >
-        <View>
-          <Image 
-            source={{ uri: item.image_url }} 
-            style={feedStyles.image}
-            onLoadStart={() => {
-              setLoadingImages(prev => ({
-                ...prev,
-                [item.id]: true
-              }));
-            }}
-            onLoadEnd={() => {
-              setLoadingImages(prev => ({
-                ...prev,
-                [item.id]: false
-              }));
-            }}
-          />
-          {loadingImages[item.id] && (
-            <View style={feedStyles.imageLoadingOverlay}>
-              <ActivityIndicator size="large" color="white" />
-            </View>
-          )}
-        </View>
-      </TouchableOpacity>
-      {item.description && (
-        <Text style={feedStyles.description}>{item.description}</Text>
-      )}
-      {item.rating && (
-        <View style={feedStyles.ratingDisplay}>
-          <Text style={feedStyles.ratingText}>
-            {'★'.repeat(item.rating)}{'☆'.repeat(5-item.rating)}
+  const renderPost = ({ item }) => {
+    return (
+      <View style={feedStyles.postContainer}>
+        <Text style={feedStyles.username}>{item.username}</Text>
+        <TouchableOpacity 
+          activeOpacity={1}
+          onPress={() => {
+            console.log('Image pressed for post:', item.id);
+            setSelectedImage(item.image_url);
+            setSelectedPost(item);
+          }}
+        >
+          <View>
+            <Image 
+              source={{ uri: item.image_url }} 
+              style={feedStyles.image}
+              onLoadStart={() => {
+                setLoadingImages(prev => ({
+                  ...prev,
+                  [item.id]: true
+                }));
+              }}
+              onLoadEnd={() => {
+                setLoadingImages(prev => ({
+                  ...prev,
+                  [item.id]: false
+                }));
+              }}
+            />
+            {loadingImages[item.id] && (
+              <View style={feedStyles.imageLoadingOverlay}>
+                <ActivityIndicator size="large" color="white" />
+              </View>
+            )}
+          </View>
+        </TouchableOpacity>
+        {item.description && (
+          <Text style={feedStyles.description}>{item.description}</Text>
+        )}
+        {item.rating && (
+          <View style={feedStyles.ratingDisplay}>
+            <Text style={feedStyles.ratingText}>
+              {'★'.repeat(item.rating)}{'☆'.repeat(5-item.rating)}
+            </Text>
+          </View>
+        )}
+        <View style={feedStyles.interactionBar}>
+          <TouchableOpacity 
+            onPress={() => toggleLike(item.id)}
+            style={feedStyles.likeButton}
+          >
+            {likedPosts[item.id] ? (
+              <HeartFilledIcon width={24} height={24} fill="#ff4444" />
+            ) : (
+              <HeartOutlineIcon width={24} height={24} fill="#555" />
+            )}
+          </TouchableOpacity>
+          <Text style={feedStyles.likeCount}>
+            {item.likeCount || 0}
+          </Text>
+          <TouchableOpacity 
+            onPress={() => showCommentModal(item.id)}
+            style={feedStyles.commentButton}
+          >
+            <MyCommentIcon width={20} height={20} fill="#555" />
+          </TouchableOpacity>
+          <Text style={feedStyles.commentCount}>
+            {item.commentCount || 0}
           </Text>
         </View>
-      )}
-      <View style={feedStyles.interactionBar}>
-        <TouchableOpacity 
-          onPress={() => toggleLike(item.id)}
-          style={feedStyles.likeButton}
-        >
-          {likedPosts[item.id] ? (
-            <HeartFilledIcon width={24} height={24} fill="#ff4444" />
-          ) : (
-            <HeartOutlineIcon width={24} height={24} fill="#555" />
-          )}
-        </TouchableOpacity>
-        <Text style={feedStyles.likeCount}>
-          {item.likeCount || 0}
-        </Text>
-        <TouchableOpacity 
-          onPress={() => showCommentModal(item.id)}
-          style={feedStyles.commentButton}
-        >
-          <MyCommentIcon width={20} height={20} fill="#555" />
-        </TouchableOpacity>
-        <Text style={feedStyles.commentCount}>
-          {item.commentCount || 0}
-        </Text>
       </View>
-    </View>
-  );
+    );
+  };
 
   const renderRatingStars = () => (
     <View style={feedStyles.ratingContainer}>
@@ -914,7 +923,7 @@ export default function Feed() {
 
                 {selectedPost && selectedPost.username === profileData?.username && (
                   <TouchableOpacity 
-                    style={feedStyles.deleteButton}
+                    style={feedStyles.postDeleteButton}
                     onPress={() => {
                       Alert.alert(
                         'Izbriši objavo',

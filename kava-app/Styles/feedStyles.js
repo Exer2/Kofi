@@ -190,6 +190,15 @@ export const feedStyles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
   },
+  postDeleteButton: {
+    position: 'absolute',
+    bottom: 40,
+    padding: 15,
+    backgroundColor: '#dc3545',
+    borderRadius: 8,
+    zIndex: 1,
+    alignSelf: 'center',
+  },
   interactionBar: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -420,4 +429,17 @@ export const feedStyles = StyleSheet.create({
     marginTop: keyboardVisible ? 140 : 420,
     paddingBottom: 0,
   }),
+  commentDeleteButton: {
+    backgroundColor: '#ff4444',
+    justifyContent: 'center',
+    flex: 1,
+    height: '110%',
+    marginTop: -12,
+    borderRadius: 10,
+  },
+  commentDeleteButtonText: {
+    color: 'white', 
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
 });
