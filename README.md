@@ -6,7 +6,7 @@
 
 ## O projektu
 
-**Kofi** je mobilna aplikacija za ljubitelje kave, ki omogoča deljenje in ocenjevanje izkušenj s kavo iz različnih kavarn. Uporabniki lahko delijo fotografije svoje kave, jo ocenijo, opišejo okus in interagirajo z drugimi kavoljubi preko komentarjev in všečkov.
+**Kofi** je mobilna aplikacija za ljubitelje kave, ki omogoča deljenje in ocenjevanje izkušenj s kavo iz različnih kavarn. Uporabniki lahko delijo fotografije svoje kave, jo ocenijo, opišejo okus, ter komentirajo in všečkajo objave drugih uporabnikov.
 
 ## Funkcionalnosti
 
