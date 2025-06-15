@@ -750,43 +750,45 @@ export default function Feed() {
               source={{ uri: item.image_url }} 
               style={feedStyles.image}
               onLoadStart={() => {
-                console.log('Image loading started for post:', item.id);
-                setLoadingImages(prev => ({
-                  ...prev,
-                  [item.id]: true
-                }));
-                
-                // Set timeout directly here instead of useEffect
-                setTimeout(() => {
+                // Only show loading on mobile platforms
+                if (Platform.OS !== 'web') {
+                  console.log('Image loading started for post:', item.id);
+                  setLoadingImages(prev => ({
+                    ...prev,
+                    [item.id]: true
+                  }));
+                }
+              }}
+              onLoad={() => {
+                if (Platform.OS !== 'web') {
+                  console.log('Image loaded successfully for post:', item.id);
                   setLoadingImages(prev => ({
                     ...prev,
                     [item.id]: false
                   }));
-                }, 5000); // 5 second fallback timeout
-              }}
-              onLoad={() => {
-                console.log('Image loaded successfully for post:', item.id);
-                setLoadingImages(prev => ({
-                  ...prev,
-                  [item.id]: false
-                }));
+                }
               }}
               onLoadEnd={() => {
-                console.log('Image loading ended for post:', item.id);
-                setLoadingImages(prev => ({
-                  ...prev,
-                  [item.id]: false
-                }));
+                if (Platform.OS !== 'web') {
+                  console.log('Image loading ended for post:', item.id);
+                  setLoadingImages(prev => ({
+                    ...prev,
+                    [item.id]: false
+                  }));
+                }
               }}
               onError={(error) => {
-                console.log('Image failed to load for post:', item.id, error);
-                setLoadingImages(prev => ({
-                  ...prev,
-                  [item.id]: false
-                }));
+                if (Platform.OS !== 'web') {
+                  console.log('Image failed to load for post:', item.id, error);
+                  setLoadingImages(prev => ({
+                    ...prev,
+                    [item.id]: false
+                  }));
+                }
               }}
             />
-            {loadingImages[item.id] && (
+            {/* Only show loading animation on mobile platforms */}
+            {Platform.OS !== 'web' && loadingImages[item.id] && (
               <View style={feedStyles.imageLoadingOverlay}>
                 <ActivityIndicator size="large" color="white" />
               </View>
