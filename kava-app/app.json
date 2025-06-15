@@ -27,7 +27,9 @@
       "permissions": ["INTERNET"]
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro",
+      "output": "static"
     },
     "plugins": [
       [
@@ -43,6 +45,9 @@
       "eas": {
         "projectId": "2bd36b97-9e02-4ed3-b62d-35ac03e4db53"
       }
-    }
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ]
   }
 }
