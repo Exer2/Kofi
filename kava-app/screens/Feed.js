@@ -837,6 +837,7 @@ export default function Feed() {
         refreshing={refreshing}
         onRefresh={onRefresh}
         showsVerticalScrollIndicator={false} 
+        contentContainerStyle={{ flexGrow: 1, paddingBottom: 80 }} // Added paddingBottom
       />
       <TouchableOpacity style={feedStyles.addButton} onPress={handleAddImage}>
         <Text style={feedStyles.addButtonText}>Objavi kavico</Text>
