@@ -734,20 +734,6 @@ export default function Feed() {
   }, []);
 
   const renderPost = ({ item }) => {
-    // Set a timeout to force hide loading after 5 seconds
-    React.useEffect(() => {
-      if (loadingImages[item.id]) {
-        const timeout = setTimeout(() => {
-          setLoadingImages(prev => ({
-            ...prev,
-            [item.id]: false
-          }));
-        }, 3000); // 3 seconds timeout
-        
-        return () => clearTimeout(timeout);
-      }
-    }, [loadingImages[item.id], item.id]);
-
     return (
       <View style={feedStyles.postContainer}>
         <Text style={feedStyles.username}>{item.username}</Text>
@@ -769,6 +755,14 @@ export default function Feed() {
                   ...prev,
                   [item.id]: true
                 }));
+                
+                // Set timeout directly here instead of useEffect
+                setTimeout(() => {
+                  setLoadingImages(prev => ({
+                    ...prev,
+                    [item.id]: false
+                  }));
+                }, 5000); // 5 second fallback timeout
               }}
               onLoad={() => {
                 console.log('Image loaded successfully for post:', item.id);
