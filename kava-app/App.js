@@ -155,6 +155,12 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 3,
   },
+  arrowText: {
+    color: 'white',
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginLeft: 2,
+  },
 });
 
 
