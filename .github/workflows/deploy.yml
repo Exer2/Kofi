@@ -21,10 +21,15 @@ jobs:
         cache: 'npm'
         cache-dependency-path: kava-app/package-lock.json
         
+    - name: Delete package-lock.json and node_modules
+      run: |
+        cd kava-app
+        rm -rf package-lock.json node_modules
+        
     - name: Install dependencies
       run: |
         cd kava-app
-        npm ci --legacy-peer-deps
+        npm install --legacy-peer-deps
         
     - name: Create .env file
       run: |
