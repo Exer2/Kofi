@@ -159,6 +159,31 @@ export default function Feed() {
 
   const handleAddImage = async () => {
     try {
+      if (Platform.OS === 'web') {
+        // Web-specific image picker
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/*';
+        input.onchange = async (event) => {
+          const file = event.target.files[0];
+          if (file) {
+            // Create blob URL for preview
+            const uri = URL.createObjectURL(file);
+            const fileName = `image-${Date.now()}.jpg`;
+            
+            setPendingUpload({
+              asset: { uri, file }, // Include the file object for web
+              fileName,
+              formData: new FormData()
+            });
+            setIsModalVisible(true);
+          }
+        };
+        input.click();
+        return;
+      }
+
+      // Mobile platforms
       const galleryStatus = await ImagePicker.requestMediaLibraryPermissionsAsync();
       const cameraStatus = await ImagePicker.requestCameraPermissionsAsync();
 
@@ -258,17 +283,26 @@ export default function Feed() {
 
       const uniqueFileName = `image-${Date.now()}-${Math.random().toString(36).substr(2, 9)}.jpg`;
 
-      const formData = new FormData();
-      formData.append('file', {
-        uri: pendingUpload.asset.uri,
-        name: uniqueFileName,
-        type: 'image/jpeg'
-      });
+      let uploadData;
+      
+      if (Platform.OS === 'web') {
+        // Web upload using File object
+        uploadData = pendingUpload.asset.file;
+      } else {
+        // Mobile upload using FormData
+        const formData = new FormData();
+        formData.append('file', {
+          uri: pendingUpload.asset.uri,
+          name: uniqueFileName,
+          type: 'image/jpeg'
+        });
+        uploadData = formData;
+      }
 
       const { error: uploadError } = await supabase.storage
         .from('posts')
-        .upload(uniqueFileName, formData, {
-          contentType: 'multipart/form-data',
+        .upload(uniqueFileName, uploadData, {
+          contentType: Platform.OS === 'web' ? pendingUpload.asset.file.type : 'multipart/form-data',
           upsert: true
         });
 
@@ -311,6 +345,11 @@ export default function Feed() {
       if (postError) {
         console.error('Post Error:', postError);
         throw postError;
+      }
+
+      // Clean up web blob URL
+      if (Platform.OS === 'web' && pendingUpload.asset.uri) {
+        URL.revokeObjectURL(pendingUpload.asset.uri);
       }
 
       setIsModalVisible(false);
@@ -871,7 +910,10 @@ export default function Feed() {
         refreshing={refreshing}
         onRefresh={onRefresh}
         showsVerticalScrollIndicator={false} 
-        contentContainerStyle={{ flexGrow: 1, paddingBottom: 80 }} // Added paddingBottom
+        contentContainerStyle={{ 
+          flexGrow: 1, 
+          paddingBottom: Platform.OS === 'web' ? 160 : 80 // Več padding na webu
+        }}
       />
       <TouchableOpacity style={feedStyles.addButton} onPress={handleAddImage}>
         <Text style={feedStyles.addButtonText}>Objavi kavico</Text>

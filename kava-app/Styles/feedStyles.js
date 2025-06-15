@@ -1,4 +1,9 @@
-import { Platform, StyleSheet } from 'react-native';
+import { Platform, StyleSheet, Dimensions } from 'react-native';
+
+// Detect mobile browser
+const isMobileWeb = Platform.OS === 'web' && 
+  (typeof window !== 'undefined' && 
+   ('ontouchstart' in window || navigator.maxTouchPoints > 0));
 
 export const feedStyles = StyleSheet.create({
   container: {
@@ -9,7 +14,9 @@ export const feedStyles = StyleSheet.create({
       minHeight: '100vh',
       maxHeight: '100vh',
       overflow: 'auto',
-      WebkitOverflowScrolling: 'touch', // Smooth scrolling on iOS Safari
+      WebkitOverflowScrolling: 'touch',
+      // Add safe area support for web
+      paddingBottom: isMobileWeb ? 'env(safe-area-inset-bottom)' : 0,
     }),
   },
   postContainer: {
@@ -61,12 +68,24 @@ export const feedStyles = StyleSheet.create({
     color: 'gray',
   },
   addButton: {
-    backgroundColor: 'black',
-    padding: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginTop: 16,
-    marginBottom: 16,
+    position: 'absolute',
+    bottom: Platform.OS === 'web' ? (isMobileWeb ? 120 : 20) : 20, // Različno za mobile web vs desktop web
+    right: 20,
+    backgroundColor: '#d2691e',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 25,
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    zIndex: 1000,
+    ...(Platform.OS === 'web' && {
+      // Web-specific styles za mobile browsers
+      marginBottom: 'env(safe-area-inset-bottom)', // iOS Safari support
+      paddingBottom: 'env(safe-area-inset-bottom)', // Additional iOS padding
+    }),
   },
   addButtonText: {
     color: '#fff',
