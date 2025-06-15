@@ -136,7 +136,9 @@ export const deleteComment = async ({
   commentId,
   postId,
   currentUser,
-  setComments
+  setComments,
+  fetchComments, 
+  fetchPosts     
 }) => {
   if (!currentUser) {
     Alert.alert('Napaka', 'Morate biti prijavljeni.');
@@ -144,23 +146,39 @@ export const deleteComment = async ({
   }
 
   try {
+    console.log('Attempting to delete comment:', commentId, 'from post:', postId);
+    
     const { error } = await supabase
       .from('comments')
       .delete()
       .eq('id', commentId)
       .eq('user_id', currentUser.id);
 
-    if (error) throw error;
+    if (error) {
+      console.error('Supabase delete error:', error);
+      throw error;
+    }
 
-    // Update local state
+    console.log('Comment deleted successfully');
+
+    // Update local state immediately
     setComments(prevComments => ({
       ...prevComments,
       [postId]: prevComments[postId]?.filter(comment => comment.id !== commentId) || []
     }));
 
+    // Also refresh data from server for consistency
+    if (fetchComments) {
+      fetchComments(postId);
+    }
+    
+    if (fetchPosts) {
+      fetchPosts(); // Update comment counts
+    }
+
     Alert.alert('Uspeh', 'Komentar je bil izbrisan.');
   } catch (err) {
     console.error('Error deleting comment:', err);
-    Alert.alert('Napaka', 'Napaka pri brisanju komentarja.');
+    Alert.alert('Napaka', `Napaka pri brisanju komentarja: ${err.message}`);
   }
 };

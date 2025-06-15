@@ -153,7 +153,9 @@ export default function Feed() {
     commentId,
     postId,
     currentUser,
-    setComments
+    setComments,
+    fetchComments,
+    fetchPosts
   });
 
   const showCommentModal = (postId) => {
@@ -181,20 +183,34 @@ export default function Feed() {
   };
 
   const handleDelete = async (postId, imageUrl) => {
+    console.log('handleDelete called with:', postId, imageUrl); // Debug log
+    
     try {
       const fileName = imageUrl.split('/').pop();
+      console.log('Attempting to delete file:', fileName); // Debug log
+      
       const { error: storageError } = await supabase.storage.from('posts').remove([fileName]);
-      if (storageError) throw storageError;
+      if (storageError) {
+        console.error('Storage delete error:', storageError);
+        throw storageError;
+      }
+      
+      console.log('File deleted from storage, now deleting from database'); // Debug log
 
       const { error: deleteError } = await supabase.from('posts').delete().eq('id', postId);
-      if (deleteError) throw deleteError;
+      if (deleteError) {
+        console.error('Database delete error:', deleteError);
+        throw deleteError;
+      }
+      
+      console.log('Post deleted successfully'); // Debug log
 
       closeImageModal();
       fetchPosts();
       Alert.alert('Uspeh', 'Objava je bila izbrisana.');
     } catch (err) {
       console.error('Error deleting post:', err);
-      Alert.alert('Napaka', 'Napaka pri brisanju objave.');
+      Alert.alert('Napaka', `Napaka pri brisanju objave: ${err.message}`);
     }
   };
 

@@ -1,52 +1,58 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, Animated } from 'react-native';
-import { Swipeable } from 'react-native-gesture-handler';
+import { View, Text, TouchableOpacity, Alert, Platform } from 'react-native';
 import { feedStyles } from '../Styles/feedStyles';
 
 export default function CommentItem({ comment, currentUser, onDeleteComment }) {
   const canDelete = currentUser && currentUser.id === comment.user_id;
   
-  const renderRightActions = (progress) => {
-    const trans = progress.interpolate({
-      inputRange: [0, 1],
-      outputRange: [80, 0],
-    });
-    
-    return (
-      <Animated.View 
-        style={[
-          feedStyles.deleteActionContainer,
-          { transform: [{ translateX: trans }] }
-        ]}
-      >
-        <TouchableOpacity
-          style={feedStyles.deleteButton}
-          onPress={() => onDeleteComment(comment.id, comment.post_id)}
-        >
-          <Text style={feedStyles.deleteButtonText}>Izbriši</Text>
-        </TouchableOpacity>
-      </Animated.View>
+  const handleDeletePress = () => {
+    Alert.alert(
+      'Izbriši komentar',
+      'Ali ste prepričani, da želite izbrisati ta komentar?',
+      [
+        { text: 'Prekliči', style: 'cancel' },
+        {
+          text: 'Izbriši',
+          onPress: () => onDeleteComment(comment.id, comment.post_id),
+          style: 'destructive',
+        },
+      ]
     );
   };
 
   return (
     <View style={feedStyles.swipeableCommentContainer}>
       <View style={feedStyles.commentSeparatorLine} />
-    
-      <Swipeable
-        renderRightActions={canDelete ? renderRightActions : null}
-        friction={2}
-        rightThreshold={40}
-        overshootRight={false}
-      >
-        <View style={[
-          feedStyles.commentItem, 
-          feedStyles.commentItemModified
-        ]}>
+      
+      <View style={[
+        feedStyles.commentItem, 
+        feedStyles.commentItemModified
+      ]}>
+        <View style={feedStyles.commentHeader}>
           <Text style={feedStyles.commentUsername}>{comment.username}</Text>
-          <Text style={feedStyles.commentContent}>{comment.content}</Text>
+          {canDelete && (
+            <TouchableOpacity 
+              onPress={handleDeletePress}
+              style={{ 
+                padding: 8,
+                backgroundColor: '#dc3545',
+                borderRadius: 4,
+                minWidth: 60,
+                alignItems: 'center',
+                ...(Platform.OS === 'web' && {
+                  touchAction: 'manipulation',
+                  WebkitTapHighlightColor: 'transparent',
+                })
+              }}
+            >
+              <Text style={[feedStyles.deleteCommentText, { color: 'white', fontWeight: 'bold' }]}>
+                Izbriši
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
-      </Swipeable>
+        <Text style={feedStyles.commentContent}>{comment.content}</Text>
+      </View>
     </View>
   );
 }

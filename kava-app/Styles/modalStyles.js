@@ -100,13 +100,22 @@ export const modalStyles = StyleSheet.create({
     top: 100,
     right: 20,
     backgroundColor: '#dc3545',
-    padding: 10,
-    borderRadius: 5,
-    zIndex: 1,
+    padding: 12, // Povečaj padding
+    borderRadius: 8, // Povečaj border radius
+    zIndex: 1001, // Višji z-index
+    minWidth: 80, // Dodaj minimum širino
+    alignItems: 'center',
+    ...(Platform.OS === 'web' && {
+      touchAction: 'manipulation',
+      WebkitTapHighlightColor: 'transparent',
+      cursor: 'pointer', // Dodaj cursor pointer za web
+    }),
   },
   
   deleteButtonText: {
     color: 'white',
     fontWeight: 'bold',
+    fontSize: 14, // Dodaj font size
+    textAlign: 'center',
   },
 });

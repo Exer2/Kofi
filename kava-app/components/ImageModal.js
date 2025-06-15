@@ -23,6 +23,15 @@ export default function ImageModal({
   setIsImageLoading
 }) {
   const handleDelete = () => {
+    console.log('Delete button pressed'); // Debug log
+    console.log('Selected post:', selectedPost); // Debug log
+    console.log('Profile data:', profileData); // Debug log
+    
+    if (!selectedPost) {
+      Alert.alert('Napaka', 'Ni izbrane objave za brisanje.');
+      return;
+    }
+
     Alert.alert(
       'Izbriši objavo',
       'Ali ste prepričani, da želite izbrisati to objavo?',
@@ -30,12 +39,22 @@ export default function ImageModal({
         { text: 'Prekliči', style: 'cancel' },
         {
           text: 'Izbriši',
-          onPress: () => onDelete(selectedPost.id, selectedPost.image_url),
+          onPress: () => {
+            console.log('Calling onDelete with:', selectedPost.id, selectedPost.image_url); // Debug log
+            onDelete(selectedPost.id, selectedPost.image_url);
+          },
           style: 'destructive',
         },
       ]
     );
   };
+
+  // Check if user can delete this post
+  const canDelete = selectedPost && profileData && selectedPost.username === profileData.username;
+  
+  console.log('Can delete:', canDelete); // Debug log
+  console.log('Selected post username:', selectedPost?.username); // Debug log
+  console.log('Profile username:', profileData?.username); // Debug log
 
   return (
     <Modal
@@ -54,10 +73,16 @@ export default function ImageModal({
                 <Text style={feedStyles.closeButtonText}>✕</Text>
               </TouchableOpacity>
 
-              {selectedPost && selectedPost.username === profileData?.username && (
+              {canDelete && (
                 <TouchableOpacity 
-                  style={feedStyles.deleteButton}
+                  style={[feedStyles.deleteButton, {
+                    ...(Platform.OS === 'web' && {
+                      touchAction: 'manipulation',
+                      WebkitTapHighlightColor: 'transparent',
+                    })
+                  }]}
                   onPress={handleDelete}
+                  activeOpacity={0.8}
                 >
                   <Text style={feedStyles.deleteButtonText}>Izbriši</Text>
                 </TouchableOpacity>

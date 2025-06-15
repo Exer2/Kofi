@@ -3,10 +3,6 @@ import 'react-native-url-polyfill/auto';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient } from '@supabase/supabase-js';
 
-// Debug info
-console.log('Platform:', Platform.OS);
-console.log('Available env vars:', Object.keys(process.env).filter(k => k.includes('SUPABASE')));
-
 // Environment variables z multiple fallbacks
 let supabaseUrl, supabaseAnonKey;
 
@@ -34,9 +30,6 @@ if (Platform.OS === 'web') {
 // Validate that environment variables are loaded
 if (!supabaseUrl || !supabaseAnonKey) {
   console.error('Supabase configuration missing!');
-  console.error('Please ensure the following environment variables are set:');
-  console.error('- REACT_APP_SUPABASE_URL');
-  console.error('- REACT_APP_SUPABASE_ANON_KEY');
   throw new Error('Supabase configuration is missing. Check your environment variables.');
 }
 

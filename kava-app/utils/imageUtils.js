@@ -56,10 +56,15 @@ export const handleUpload = async ({
 
   try {
     setIsUploading(true);
+    console.log('Starting upload process...');
 
     // Get current user
     const { data: { user }, error: userError } = await supabase.auth.getUser();
-    if (userError) throw userError;
+    if (userError) {
+      console.error('User auth error:', userError);
+      throw userError;
+    }
+    console.log('User authenticated:', user.id);
 
     // Get user profile
     const { data: profileData, error: profileError } = await supabase
@@ -68,42 +73,99 @@ export const handleUpload = async ({
       .eq('id', user.id)
       .single();
 
-    if (profileError) throw profileError;
+    if (profileError) {
+      console.error('Profile fetch error:', profileError);
+      throw profileError;
+    }
+    console.log('Profile data:', profileData);
 
-    // Create file name
-    const fileExt = pendingUpload.uri.split('.').pop();
-    const fileName = `${Date.now()}.${fileExt}`;
+    // Create file name with user ID for uniqueness
+    const fileExt = pendingUpload.uri.split('.').pop() || 'jpg';
+    const fileName = `${user.id}_${Date.now()}.${fileExt}`;
+    console.log('Generated filename:', fileName);
 
     let fileToUpload;
 
     if (Platform.OS === 'web') {
-      // Web platform
-      const response = await fetch(pendingUpload.uri);
-      const blob = await response.blob();
-      fileToUpload = blob;
+      // Web platform - convert to blob
+      console.log('Processing image for web upload...');
+      try {
+        const response = await fetch(pendingUpload.uri);
+        if (!response.ok) {
+          throw new Error(`Failed to fetch image: ${response.status} ${response.statusText}`);
+        }
+        fileToUpload = await response.blob();
+        console.log('Image converted to blob, size:', fileToUpload.size);
+      } catch (fetchError) {
+        console.error('Error converting image to blob:', fetchError);
+        throw new Error('Napaka pri pripravi slike za upload.');
+      }
     } else {
       // Mobile platforms
-      const response = await fetch(pendingUpload.uri);
-      const arrayBuffer = await response.arrayBuffer();
-      fileToUpload = arrayBuffer;
+      console.log('Processing image for mobile upload...');
+      try {
+        const response = await fetch(pendingUpload.uri);
+        if (!response.ok) {
+          throw new Error(`Failed to fetch image: ${response.status} ${response.statusText}`);
+        }
+        fileToUpload = await response.arrayBuffer();
+        console.log('Image converted to arrayBuffer, size:', fileToUpload.byteLength);
+      } catch (fetchError) {
+        console.error('Error converting image to arrayBuffer:', fetchError);
+        throw new Error('Napaka pri pripravi slike za upload.');
+      }
     }
 
     // Upload image to Supabase Storage
+    console.log('Uploading to Supabase storage...');
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from('posts')
       .upload(fileName, fileToUpload, {
         contentType: `image/${fileExt}`,
-        upsert: false
+        upsert: false,
+        cacheControl: '3600'
       });
 
-    if (uploadError) throw uploadError;
+    if (uploadError) {
+      console.error('Supabase storage error:', uploadError);
+      
+      // Check if it's a CORS or network error
+      if (uploadError.message.includes('Failed to fetch') || 
+          uploadError.message.includes('CORS') ||
+          uploadError.message.includes('Network')) {
+        throw new Error('Napaka pri povezavi s strežnikom. Preverite internetno povezavo.');
+      }
+      
+      // Check if it's a file size error
+      if (uploadError.message.includes('file size') || 
+          uploadError.message.includes('too large')) {
+        throw new Error('Slika je prevelika. Izberite manjšo sliko.');
+      }
+      
+      // Check if it's a permissions error
+      if (uploadError.message.includes('permission') || 
+          uploadError.message.includes('policy')) {
+        throw new Error('Nimate dovoljenja za upload slik. Kontaktirajte administratorja.');
+      }
+      
+      throw uploadError;
+    }
+
+    console.log('Upload successful:', uploadData);
 
     // Get public URL
     const { data: urlData } = supabase.storage
       .from('posts')
       .getPublicUrl(fileName);
 
+    if (!urlData.publicUrl) {
+      throw new Error('Napaka pri pridobivanju URL-ja slike.');
+    }
+
+    console.log('Public URL generated:', urlData.publicUrl);
+
     // Save post to database
+    console.log('Saving post to database...');
     const { error: insertError } = await supabase
       .from('posts')
       .insert([
@@ -116,7 +178,21 @@ export const handleUpload = async ({
         }
       ]);
 
-    if (insertError) throw insertError;
+    if (insertError) {
+      console.error('Database insert error:', insertError);
+      
+      // Try to clean up uploaded file if database insert fails
+      try {
+        await supabase.storage.from('posts').remove([fileName]);
+        console.log('Cleaned up uploaded file after database error');
+      } catch (cleanupError) {
+        console.error('Error cleaning up file:', cleanupError);
+      }
+      
+      throw insertError;
+    }
+
+    console.log('Post saved to database successfully');
 
     // Reset form
     setIsModalVisible(false);
@@ -131,8 +207,22 @@ export const handleUpload = async ({
 
   } catch (error) {
     console.error('Error uploading:', error);
-    setError('Napaka pri objavljanju. Poskusite znova.');
-    Alert.alert('Napaka', 'Napaka pri objavljanju. Poskusite znova.');
+    
+    // Provide more specific error messages
+    let errorMessage = 'Napaka pri objavljanju. Poskusite znova.';
+    
+    if (error.message.includes('povezavi') || error.message.includes('Network')) {
+      errorMessage = 'Napaka pri internetni povezavi. Preverite povezavo in poskusite znova.';
+    } else if (error.message.includes('prevelika') || error.message.includes('size')) {
+      errorMessage = 'Slika je prevelika. Izberite manjšo sliko.';
+    } else if (error.message.includes('dovoljenja') || error.message.includes('permission')) {
+      errorMessage = 'Nimate dovoljenja za objavljanje. Kontaktirajte administratorja.';
+    } else if (error.message) {
+      errorMessage = error.message;
+    }
+    
+    setError(errorMessage);
+    Alert.alert('Napaka', errorMessage);
   } finally {
     setIsUploading(false);
   }

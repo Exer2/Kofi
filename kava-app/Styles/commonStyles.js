@@ -5,10 +5,15 @@ export const isMobileWeb = Platform.OS === 'web' &&
   (typeof window !== 'undefined' && 
    ('ontouchstart' in window || navigator.maxTouchPoints > 0));
 
-// Common web touch styles
+// Enhanced web touch styles - to prevent zoom
 export const webTouchStyles = Platform.OS === 'web' ? {
   touchAction: 'manipulation',
   WebkitTapHighlightColor: 'transparent',
+  WebkitTouchCallout: 'none',
+  WebkitUserSelect: 'none',
+  MozUserSelect: 'none',
+  MsUserSelect: 'none',
+  userSelect: 'none',
 } : {};
 
 // Common web safe area styles
@@ -28,6 +33,12 @@ export const commonStyles = StyleSheet.create({
       overflow: 'auto',
       WebkitOverflowScrolling: 'touch',
       paddingBottom: isMobileWeb ? 'env(safe-area-inset-bottom)' : 0,
+      // Add web-specific styles to prevent zoom
+      touchAction: 'manipulation',
+      WebkitUserSelect: 'none',
+      MozUserSelect: 'none',
+      MsUserSelect: 'none',
+      userSelect: 'none',
     }),
   },
   
@@ -36,20 +47,29 @@ export const commonStyles = StyleSheet.create({
     padding: 15,
     borderRadius: 8,
     marginHorizontal: 5,
+    ...webTouchStyles, // Add touch styles to buttons
   },
   
   cancelButton: {
     backgroundColor: '#dc3545',
+    ...webTouchStyles,
   },
   
   submitButton: {
     backgroundColor: 'black',
+    ...webTouchStyles,
   },
   
   buttonText: {
     color: 'white',
     textAlign: 'center',
     fontWeight: 'bold',
+    ...(Platform.OS === 'web' && {
+      WebkitUserSelect: 'none',
+      MozUserSelect: 'none',
+      MsUserSelect: 'none',
+      userSelect: 'none',
+    }),
   },
   
   closeButton: {
@@ -58,11 +78,18 @@ export const commonStyles = StyleSheet.create({
     right: 20,
     zIndex: 1,
     padding: 10,
+    ...webTouchStyles,
   },
   
   closeButtonText: {
     color: 'white',
     fontSize: 24,
     fontWeight: 'bold',
+    ...(Platform.OS === 'web' && {
+      WebkitUserSelect: 'none',
+      MozUserSelect: 'none',
+      MsUserSelect: 'none',
+      userSelect: 'none',
+    }),
   },
 });
