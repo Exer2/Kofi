@@ -40,8 +40,6 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Supabase configuration is missing. Check your environment variables.');
 }
 
-console.log('Using Supabase URL:', supabaseUrl?.substring(0, 30) + '...');
-console.log('Using Supabase Key:', supabaseAnonKey?.substring(0, 30) + '...');
 
 // Storage adapter
 const storage = Platform.OS === 'web' ? 
