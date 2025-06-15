@@ -1050,28 +1050,28 @@ export default function Feed() {
       {/* Comment Modal */}
       <Modal
         visible={commentModalVisible}
-        animationType="slide"  // Changed from "slide" to "fade" for better background appearance
+        animationType="slide"
         transparent={true}
         onRequestClose={() => setCommentModalVisible(false)}
       >
         <KeyboardAvoidingView 
           behavior={Platform.OS === "ios" ? "padding" : "height"}
           style={{ flex: 1 }}
+          keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 25} // Dodaj offset
         >
           <TouchableWithoutFeedback
             onPress={() => {
-              setCommentModalVisible(false);
-              setSelectedPostForComment(null);
-              setCommentText('');
+              Keyboard.dismiss(); // Skrij tipkovnico ob kliku zunaj
             }}
           >
-            <View style={[feedStyles.modalOverlay, { justifyContent: 'center' }]}>
+            <View style={[feedStyles.modalOverlay, { justifyContent: 'flex-end' }]}> {/* Spremeni na flex-end */}
               <TouchableWithoutFeedback onPress={(e) => e.stopPropagation()}>
                 <View style={[
-                  feedStyles.modalContent, 
-                  Platform.OS === 'android' 
-                    ? { ...feedStyles.commentModalContentAndroid(keyboardVisible) }
-                    : { ...feedStyles.commentModalContentIOS(keyboardVisible) }
+                  feedStyles.commentsContainer, // Uporabi commentsContainer namesto modalContent
+                  {
+                    maxHeight: keyboardVisible ? '50%' : '80%', // Dinamična višina
+                    paddingBottom: keyboardVisible ? 10 : 20, // Manj padding ko je tipkovnica vidna
+                  }
                 ]}>
                   <View style={feedStyles.commentsHeader}>
                     <Text style={feedStyles.commentsTitle}>Komentarji</Text>
@@ -1080,14 +1080,15 @@ export default function Feed() {
                       onPress={() => {
                         setCommentModalVisible(false);
                         setSelectedPostForComment(null);
-                        setCommentText(''); // ← Spremeni na setCommentText
+                        setCommentText('');
+                        Keyboard.dismiss(); // Skrij tipkovnico
                       }}
                     >
                       <Text style={{fontSize: 20, fontWeight: 'bold'}}>✕</Text>
                     </TouchableOpacity>
                   </View>
                   
-                  <View style={{height: '70%'}}>
+                  <View style={{flex: 1}}> {/* Uporabi flex namesto fiksne višine */}
                     {loadingComments ? (
                       <ActivityIndicator size="large" color="#000" style={{marginTop: 20}} />
                     ) : (
@@ -1099,29 +1100,50 @@ export default function Feed() {
                         ListEmptyComponent={
                           <Text style={feedStyles.noCommentsText}>Ni komentarjev.</Text>
                         }
+                        showsVerticalScrollIndicator={false}
+                        contentContainerStyle={{ paddingBottom: 10 }}
                       />
                     )}
                   </View>
                   
-                  <View style={feedStyles.addCommentContainer}>
-                    <View style={feedStyles.commentInputContainer}>
-                      <TextInput
-                        style={feedStyles.commentInput}
-                        value={commentText} // ← Spremeni na commentText
-                        onChangeText={setCommentText} // ← Spremeni na setCommentText
-                        placeholder="Kaj pa ti praviš na kavico..."
-                        multiline={false}
-                        returnKeyType="send"
-                        onSubmitEditing={handleCommentSubmit}
-                      />
-                      <TouchableOpacity 
-                        style={feedStyles.commentSubmitButton}
-                        onPress={handleCommentSubmit}
-                        activeOpacity={0.8}
-                      >
-                        <Text style={feedStyles.commentSubmitButtonText}>Pošlji</Text>
-                      </TouchableOpacity>
-                    </View>
+                  <View style={[
+                    feedStyles.commentInputContainer,
+                    {
+                      paddingBottom: Platform.OS === 'ios' && keyboardVisible ? 0 : 16, // Manj padding na iOS
+                      marginBottom: Platform.OS === 'web' ? 'env(safe-area-inset-bottom)' : 0,
+                    }
+                  ]}>
+                    <TextInput
+                      style={feedStyles.commentInput}
+                      value={commentText}
+                      onChangeText={setCommentText}
+                      placeholder="Kaj pa ti praviš na kavico..."
+                      multiline={false}
+                      returnKeyType="send"
+                      onSubmitEditing={handleCommentSubmit}
+                      onFocus={() => {
+                        // Scroll to bottom when input is focused
+                        setTimeout(() => {
+                          if (Platform.OS === 'ios') {
+                            // iOS specific handling
+                            setKeyboardVisible(true);
+                          }
+                        }, 100);
+                      }}
+                      onBlur={() => {
+                        // Handle when input loses focus
+                        setTimeout(() => {
+                          setKeyboardVisible(false);
+                        }, 100);
+                      }}
+                    />
+                    <TouchableOpacity 
+                      style={feedStyles.commentSubmitButton}
+                      onPress={handleCommentSubmit}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={feedStyles.commentSubmitButtonText}>Pošlji</Text>
+                    </TouchableOpacity>
                   </View>
                 </View>
               </TouchableWithoutFeedback>

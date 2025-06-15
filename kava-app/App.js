@@ -122,7 +122,7 @@ function HomeScreen({ navigation }) {
         style={styles.circleButton}
         onPress={() => navigation.navigate('Login')}
       >
-        <Ionicons name="arrow-forward" size={24} color="white" />
+        <Text style={styles.arrowText}>&gt;</Text>
       </TouchableOpacity>
     </View>
   );
