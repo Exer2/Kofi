@@ -1109,23 +1109,24 @@ export default function Feed() {
                   </View>
                   
                   <View style={feedStyles.addCommentContainer}>
-                    <TextInput
-                      style={feedStyles.commentInput}
-                      placeholder="Kaj pa ti praviš na kavico?..."
-                      value={commentText}
-                      onChangeText={setCommentText}
-                      multiline
-                    />
-                    <TouchableOpacity 
-                      style={[
-                        feedStyles.addCommentButton, 
-                        !commentText.trim() && feedStyles.addCommentButtonDisabled
-                      ]}
-                      onPress={addComment}
-                      disabled={!commentText.trim()}
-                    >
-                      <Text style={feedStyles.addCommentButtonText}>Povej</Text>
-                    </TouchableOpacity>
+                    <View style={feedStyles.commentInputContainer}>
+                      <TextInput
+                        style={feedStyles.commentInput}
+                        value={newComment}
+                        onChangeText={setNewComment}
+                        placeholder="Kaj pa ti praviš na kavico..."
+                        multiline={false} // Ene vrstice input
+                        returnKeyType="send"
+                        onSubmitEditing={handleCommentSubmit}
+                      />
+                      <TouchableOpacity 
+                        style={feedStyles.commentSubmitButton}
+                        onPress={handleCommentSubmit}
+                        activeOpacity={0.8}
+                      >
+                        <Text style={feedStyles.commentSubmitButtonText}>Pošlji</Text>
+                      </TouchableOpacity>
+                    </View>
                   </View>
                 </View>
               </TouchableWithoutFeedback>

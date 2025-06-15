@@ -46,6 +46,10 @@ export const feedStyles = StyleSheet.create({
     width: 300,
     height: 300,
     borderRadius: 8,
+    ...(Platform.OS === 'web' && {
+      touchAction: 'manipulation',
+      WebkitTapHighlightColor: 'transparent',
+    }),
   },
   description: {
     fontSize: 14,
@@ -69,24 +73,26 @@ export const feedStyles = StyleSheet.create({
   },
   addButton: {
     position: 'absolute',
-    bottom: Platform.OS === 'web' ? (isMobileWeb ? 40 : 20) : 20, // Zmanjšal z 120 na 40 za mobile web
+    bottom: Platform.OS === 'web' ? (isMobileWeb ? 60 : 30) : 30,
     right: 20,
     backgroundColor: '#d2691e',
-    paddingHorizontal: 24, // Povečal za več prostora
-    paddingVertical: 16, // Povečal za večji gumb
-    borderRadius: 30, // Povečal za lepši izgled
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+    borderRadius: 30,
     elevation: 5,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
     zIndex: 1000,
-    minWidth: 140, // Dodal minimalno širino
-    alignItems: 'center', // Centriral vsebino
-    justifyContent: 'center', // Centriral vertikalno
+    minWidth: 140,
+    alignItems: 'center',
+    justifyContent: 'center',
     ...(Platform.OS === 'web' && {
-      // Web-specific styles za mobile browsers
-      marginBottom: isMobileWeb ? 20 : 0, // Zmanjšal marginBottom
+      marginBottom: isMobileWeb ? 20 : 0,
+      touchAction: 'manipulation', // Prepreči zoom na double-tap
+      WebkitTapHighlightColor: 'transparent', // Prepreči highlight
+      userSelect: 'none', // Prepreči text selection
     }),
   },
   addButtonText: {
@@ -138,6 +144,10 @@ export const feedStyles = StyleSheet.create({
   },
   starButton: {
     padding: 5,
+    ...(Platform.OS === 'web' && {
+      touchAction: 'manipulation',
+      WebkitTapHighlightColor: 'transparent',
+    }),
   },
   star: {
     fontSize: 30,
@@ -216,6 +226,10 @@ export const feedStyles = StyleSheet.create({
   },
   likeButton: {
     padding: 8,
+    ...(Platform.OS === 'web' && {
+      touchAction: 'manipulation',
+      WebkitTapHighlightColor: 'transparent',
+    }),
   },
   likeIcon: {
     fontSize: 24,
@@ -238,6 +252,10 @@ export const feedStyles = StyleSheet.create({
     alignItems: 'center',
     marginLeft: 20,
     padding: 5,
+    ...(Platform.OS === 'web' && {
+      touchAction: 'manipulation',
+      WebkitTapHighlightColor: 'transparent',
+    }),
   },
   commentIcon: {
     fontSize: 18,
@@ -333,40 +351,40 @@ export const feedStyles = StyleSheet.create({
   },
   commentInputContainer: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'center', // Vertikalno centriranje
+    padding: 16,
     borderTopWidth: 1,
-    borderTopColor: '#eee',
-    paddingTop: 10,
+    borderTopColor: '#e0e0e0',
+    backgroundColor: '#fff',
+    gap: 12, // Razmik med input in gumbom
   },
+  
   commentInput: {
     flex: 1,
     borderWidth: 1,
-    borderColor: '#888',
-    borderRadius: 20,
+    borderColor: '#ddd',
+    borderRadius: 25, // Bolj okrogel input
     paddingHorizontal: 16,
-    paddingVertical: 8,
-    marginRight: 8,
-    maxHeight: 100,
-    padding: 10,
+    paddingVertical: 12,
+    fontSize: 16,
+    backgroundColor: '#f9f9f9',
+    minHeight: 44, // Zagotovi konstantno višino
   },
-  postCommentButton: {
-    marginLeft: 10,
-    backgroundColor: '#5DB075',
-    padding: 10,
-    borderRadius: 20,
+  
+  commentSubmitButton: {
+    backgroundColor: '#d2691e',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 25,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: 80, // Minimalna širina gumba
+    minHeight: 44, // Enaka višina kot input
   },
-  postCommentButtonText: {
-    color: 'white',
-    fontWeight: 'bold',
-  },
-  addCommentButton: {
-    backgroundColor: 'black',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-  },
-  addCommentButtonText: {
-    color: 'white',
+  
+  commentSubmitButtonText: {
+    color: '#fff',
+    fontSize: 16,
     fontWeight: 'bold',
   },
   closeCommentModalButton: {

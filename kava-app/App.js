@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, Button, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { StyleSheet, Text, View, Button, TouchableOpacity, ActivityIndicator, Platform } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import * as SplashScreen from 'expo-splash-screen';
@@ -9,6 +9,36 @@ import Login from './screens/Login';
 import Register from './screens/Register';
 import Feed from './screens/Feed';
 import { Ionicons } from '@expo/vector-icons';
+
+// Add web-specific meta tags
+if (Platform.OS === 'web') {
+  // Add viewport meta if not exists
+  if (!document.querySelector('meta[name="viewport"]')) {
+    const meta = document.createElement('meta');
+    meta.name = 'viewport';
+    meta.content = 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover';
+    document.head.appendChild(meta);
+  }
+  
+  // Add CSS to prevent zoom
+  const style = document.createElement('style');
+  style.textContent = `
+    * {
+      -webkit-tap-highlight-color: transparent;
+      -webkit-touch-callout: none;
+    }
+    
+    button, [role="button"], .touchable {
+      touch-action: manipulation;
+    }
+    
+    body {
+      touch-action: manipulation;
+      -webkit-text-size-adjust: 100%;
+    }
+  `;
+  document.head.appendChild(style);
+}
 
 // Keep the splash screen visible while we fetch resources
 SplashScreen.preventAutoHideAsync();
