@@ -38,7 +38,10 @@ jobs:
       
     - name: Build web app
       working-directory: ./kava-app
-      run: npx expo export --platform web
+      env:
+        REACT_APP_SUPABASE_URL: ${{ vars.REACT_APP_SUPABASE_URL }}
+        REACT_APP_SUPABASE_ANON_KEY: ${{ vars.REACT_APP_SUPABASE_ANON_KEY }}
+      run: npx expo export --platform web --no-minify
       
     - name: Upload artifact
       uses: actions/upload-pages-artifact@v3
