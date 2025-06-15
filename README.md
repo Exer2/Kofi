@@ -55,7 +55,7 @@
 
 1. **Kloniraj repozitorij:**
 ```bash
-git clone https://github.com/KuminM/kofi.git
+git clone https://github.com/Exer2/kofi.git
 cd kofi/kava-app
 ```
 
