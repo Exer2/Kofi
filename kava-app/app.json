@@ -29,9 +29,7 @@
     },
     "web": {
       "favicon": "./assets/favicon.png",
-      "bundler": "metro",
-      "output": "static",
-      "publicPath": "/Kofi/"
+      "bundler": "metro"
     },
     "plugins": [
       [

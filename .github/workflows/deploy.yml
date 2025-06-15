@@ -3,8 +3,6 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches: [ main ]
-  pull_request:
-    branches: [ main ]
 
 jobs:
   deploy:
@@ -39,7 +37,18 @@ jobs:
     - name: Build for web
       run: |
         cd kava-app
-        npx expo export --platform web
+        npx expo export --platform web --clear
+        
+    - name: Create 404.html for SPA routing
+      run: |
+        cd kava-app/dist
+        cp index.html 404.html || echo "index.html not found, checking web-build"
+        if [ -d "../web-build" ]; then
+          cd ../web-build
+          cp index.html 404.html
+          cd ../
+          mv web-build/* dist/ || mkdir -p dist && mv web-build/* dist/
+        fi
         
     - name: Deploy to GitHub Pages
       uses: peaceiris/actions-gh-pages@v3
