@@ -139,4 +139,49 @@ export const commentStyles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
   },
+  
+  // Add missing styles:
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  
+  swipeableCommentContainer: {
+    backgroundColor: 'white',
+  },
+  
+  commentSeparatorLine: {
+    height: 1,
+    backgroundColor: '#eee',
+    marginVertical: 5,
+  },
+  
+  commentItemModified: {
+    backgroundColor: 'white',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+  },
+  
+  deleteActionContainer: {
+    backgroundColor: '#dc3545',
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: 80,
+  },
+  
+  // Dynamic styles as functions
+  commentModalContentAndroid: (keyboardVisible) => ({
+    maxHeight: keyboardVisible ? '60%' : '80%',
+    position: 'relative',
+    marginTop: keyboardVisible ? 80 : 160,
+  }),
+  
+  commentModalContentIOS: (keyboardVisible) => ({
+    maxHeight: '80%',
+    position: 'relative',
+    marginTop: keyboardVisible ? 140 : Platform.OS === 'web' ? 320 : 420,
+    paddingBottom: Platform.OS === 'web' ? 100 : 0,
+  }),
 });

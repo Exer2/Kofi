@@ -94,4 +94,19 @@ export const modalStyles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: 8,
   },
+  
+  deleteButton: {
+    position: 'absolute',
+    top: 100,
+    right: 20,
+    backgroundColor: '#dc3545',
+    padding: 10,
+    borderRadius: 5,
+    zIndex: 1,
+  },
+  
+  deleteButtonText: {
+    color: 'white',
+    fontWeight: 'bold',
+  },
 });
