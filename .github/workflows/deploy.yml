@@ -32,23 +32,23 @@ jobs:
         cd kava-app
         echo "REACT_APP_SUPABASE_URL=${{ secrets.REACT_APP_SUPABASE_URL }}" > .env
         echo "REACT_APP_SUPABASE_ANON_KEY=${{ secrets.REACT_APP_SUPABASE_ANON_KEY }}" >> .env
+        echo "EXPO_PUBLIC_SUPABASE_URL=${{ secrets.REACT_APP_SUPABASE_URL }}" >> .env
+        echo "EXPO_PUBLIC_SUPABASE_ANON_KEY=${{ secrets.REACT_APP_SUPABASE_ANON_KEY }}" >> .env
         echo "PORT=3000" >> .env
         
-    - name: Build for web
+    - name: Build for web with GitHub Pages base URL
       run: |
         cd kava-app
-        npx expo export --platform web --clear
+        export REACT_APP_SUPABASE_URL="${{ secrets.REACT_APP_SUPABASE_URL }}"
+        export REACT_APP_SUPABASE_ANON_KEY="${{ secrets.REACT_APP_SUPABASE_ANON_KEY }}"
+        export EXPO_PUBLIC_SUPABASE_URL="${{ secrets.REACT_APP_SUPABASE_URL }}"
+        export EXPO_PUBLIC_SUPABASE_ANON_KEY="${{ secrets.REACT_APP_SUPABASE_ANON_KEY }}"
+        npx expo export --platform web --public-url https://exer2.github.io/Kofi/ --clear
         
     - name: Create 404.html for SPA routing
       run: |
         cd kava-app/dist
-        cp index.html 404.html || echo "index.html not found, checking web-build"
-        if [ -d "../web-build" ]; then
-          cd ../web-build
-          cp index.html 404.html
-          cd ../
-          mv web-build/* dist/ || mkdir -p dist && mv web-build/* dist/
-        fi
+        cp index.html 404.html
         
     - name: Deploy to GitHub Pages
       uses: peaceiris/actions-gh-pages@v3
