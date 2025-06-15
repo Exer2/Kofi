@@ -123,36 +123,74 @@ export default function Feed() {
   };
 
   const toggleLike = async (postId) => {
+    if (!currentUser) {
+      Alert.alert('Napaka', 'Morate biti prijavljeni za všečkanje objav.');
+      return;
+    }
+
+    const isLiked = likedPosts[postId];
+    
+    // Optimistic update - posodobi UI takoj
+    setLikedPosts(prev => ({
+      ...prev,
+      [postId]: !isLiked
+    }));
+    
+    // Tudi optimistic update za count
+    setPosts(prevPosts => 
+      prevPosts.map(post => 
+        post.id === postId 
+          ? { 
+              ...post, 
+              likeCount: (post.likeCount || 0) + (!isLiked ? 1 : -1)
+            }
+          : post
+      )
+    );
+
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (likedPosts[postId]) {
+      if (isLiked) {
+        // Remove like
         const { error } = await supabase
           .from('likes')
           .delete()
           .eq('post_id', postId)
-          .eq('user_id', user.id);
-        
+          .eq('user_id', currentUser.id);
+
         if (error) throw error;
-        
-        setLikedPosts(prev => ({
-          ...prev,
-          [postId]: false
-        }));
+        console.log('Like removed for post:', postId);
       } else {
+        // Add like
         const { error } = await supabase
           .from('likes')
-          .insert([{ post_id: postId, user_id: user.id }]);
-        
+          .insert([{
+            post_id: postId,
+            user_id: currentUser.id
+          }]);
+
         if (error) throw error;
-        
-        setLikedPosts(prev => ({
-          ...prev,
-          [postId]: true
-        }));
+        console.log('Like added for post:', postId);
       }
     } catch (err) {
       console.error('Error toggling like:', err);
+      
+      // Revert optimistic update on error
+      setLikedPosts(prev => ({
+        ...prev,
+        [postId]: isLiked // Revert to original state
+      }));
+      
+      setPosts(prevPosts => 
+        prevPosts.map(post => 
+          post.id === postId 
+            ? { 
+                ...post, 
+                likeCount: (post.likeCount || 0) - (!isLiked ? 1 : -1) // Revert count
+              }
+            : post
+        )
+      );
+      
       Alert.alert('Napaka', 'Napaka pri všečkanju objave.');
     }
   };
@@ -601,73 +639,71 @@ export default function Feed() {
         async payload => {
           console.log('Like change detected:', payload);
           
-          // For DELETE events, payload.old might not contain post_id
-          if (payload.eventType === 'DELETE' && !payload.old.post_id) {
-            console.log('This is a DELETE event without post_id, refreshing all post counts');
-            
-            // Update counts for all posts when we can't determine which specific post was affected
-            try {
-              const { data, error } = await supabase
-                .from('posts')
-                .select(`
-                  id,
-                  likes:likes(count)
-                `);
-                
-              if (error) {
-                console.error('Error fetching like counts:', error);
-                return;
-              }
-              
-              // Update like counts for all posts
-              setPosts(prevPosts => 
-                prevPosts.map(post => {
-                  const postData = data.find(p => p.id === post.id);
-                  const likeCount = postData?.likes[0]?.count || 0;
-                  return {
-                    ...post,
-                    likeCount
-                  };
-                })
-              );
-            } catch (err) {
-              console.error('Error updating likes:', err);
-            }
-            return;
-          }
-          
-          // For other events, proceed with the normal flow
           const postId = payload.new?.post_id || payload.old?.post_id;
           
           if (!postId) {
-            console.log('No postId found in payload');
+            console.log('No postId found in payload, refreshing all posts');
+            // Če ni post_id, osvežimo vse objave
+            fetchPosts();
+            fetchLikes();
             return;
           }
 
-          // Fetch the current accurate count from the database
+          // Za specific post_id, posodobi samo ta post
           try {
-            const { count, error } = await supabase
+            // Fetchiraj novo število všečkov za specific post
+            const { count: newLikeCount, error: countError } = await supabase
               .from('likes')
               .select('*', { count: 'exact', head: true })
               .eq('post_id', postId);
               
-            if (error) {
-              console.error('Error fetching like count:', error);
+            if (countError) {
+              console.error('Error fetching like count:', countError);
+              // Fallback: refresh vse
+              fetchPosts();
               return;
             }
 
-            console.log(`Fetched updated like count for post ${postId}:`, count);
+            console.log(`Updated like count for post ${postId}:`, newLikeCount);
             
-            // Update UI with accurate count
+            // Posodobi state za specifičen post
             setPosts(prevPosts => 
               prevPosts.map(post => 
                 post.id === postId 
-                  ? { ...post, likeCount: count }
+                  ? { ...post, likeCount: newLikeCount }
                   : post
               )
             );
+
+            // Tudi posodobi likedPosts state za trenutnega uporabnika
+            if (currentUser) {
+              const { data: userLikeData, error: userLikeError } = await supabase
+                .from('likes')
+                .select('*')
+                .eq('post_id', postId)
+                .eq('user_id', currentUser.id)
+                .single();
+
+              if (!userLikeError && userLikeData) {
+                // User likes this post
+                setLikedPosts(prev => ({
+                  ...prev,
+                  [postId]: true
+                }));
+              } else {
+                // User doesn't like this post
+                setLikedPosts(prev => ({
+                  ...prev,
+                  [postId]: false
+                }));
+              }
+            }
+            
           } catch (err) {
-            console.error('Error in fetchUpdatedCount:', err);
+            console.error('Error in like subscription handler:', err);
+            // Fallback: refresh vse
+            fetchPosts();
+            fetchLikes();
           }
         }
       )
