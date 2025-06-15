@@ -51,7 +51,7 @@
 - Expo CLI
 - Android Studio / Xcode (za emulatorje)
 
-### Lokalni razvoj:
+### Lokalno:
 
 1. **Kloniraj repozitorij:**
 ```bash
@@ -84,6 +84,7 @@ npm run ios
 
 # Web verzija
 npm run web
+```
 
 ## Struktura projekta
 
