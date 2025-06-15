@@ -69,28 +69,32 @@ export const feedStyles = StyleSheet.create({
   },
   addButton: {
     position: 'absolute',
-    bottom: Platform.OS === 'web' ? (isMobileWeb ? 120 : 20) : 20, // Različno za mobile web vs desktop web
+    bottom: Platform.OS === 'web' ? (isMobileWeb ? 40 : 20) : 20, // Zmanjšal z 120 na 40 za mobile web
     right: 20,
     backgroundColor: '#d2691e',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 25,
+    paddingHorizontal: 24, // Povečal za več prostora
+    paddingVertical: 16, // Povečal za večji gumb
+    borderRadius: 30, // Povečal za lepši izgled
     elevation: 5,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
     zIndex: 1000,
+    minWidth: 140, // Dodal minimalno širino
+    alignItems: 'center', // Centriral vsebino
+    justifyContent: 'center', // Centriral vertikalno
     ...(Platform.OS === 'web' && {
       // Web-specific styles za mobile browsers
-      marginBottom: 'env(safe-area-inset-bottom)', // iOS Safari support
-      paddingBottom: 'env(safe-area-inset-bottom)', // Additional iOS padding
+      marginBottom: isMobileWeb ? 20 : 0, // Zmanjšal marginBottom
     }),
   },
   addButtonText: {
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
+    textAlign: 'center', // Dodal za centriranje teksta
+    lineHeight: 20, // Dodal za boljše vertikalno poravnavanje
   },
   error: {
     color: 'red',
