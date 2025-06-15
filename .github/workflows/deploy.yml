@@ -36,18 +36,28 @@ jobs:
         echo "EXPO_PUBLIC_SUPABASE_ANON_KEY=${{ secrets.REACT_APP_SUPABASE_ANON_KEY }}" >> .env
         echo "PORT=3000" >> .env
         
-    - name: Build for web with GitHub Pages base URL
+    - name: Build for web
       run: |
         cd kava-app
         export REACT_APP_SUPABASE_URL="${{ secrets.REACT_APP_SUPABASE_URL }}"
         export REACT_APP_SUPABASE_ANON_KEY="${{ secrets.REACT_APP_SUPABASE_ANON_KEY }}"
         export EXPO_PUBLIC_SUPABASE_URL="${{ secrets.REACT_APP_SUPABASE_URL }}"
         export EXPO_PUBLIC_SUPABASE_ANON_KEY="${{ secrets.REACT_APP_SUPABASE_ANON_KEY }}"
-        npx expo export --platform web --public-url https://exer2.github.io/Kofi/ --clear
+        npx expo export --platform web --clear
         
-    - name: Create 404.html for SPA routing
+    - name: Fix paths for GitHub Pages subdirectory
       run: |
         cd kava-app/dist
+        # Fix HTML paths
+        sed -i 's|href="/|href="/Kofi/|g' index.html
+        sed -i 's|src="/|src="/Kofi/|g' index.html
+        # Fix JavaScript bundle paths
+        for file in $(find . -name "*.js"); do
+          sed -i 's|"/_expo/|"/Kofi/_expo/|g' "$file"
+          sed -i 's|"/static/|"/Kofi/static/|g' "$file"
+          sed -i 's|"/assets/|"/Kofi/assets/|g' "$file"
+        done
+        # Create 404.html for SPA routing
         cp index.html 404.html
         
     - name: Deploy to GitHub Pages
