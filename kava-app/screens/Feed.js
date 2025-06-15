@@ -48,7 +48,7 @@ export default function Feed() {
   const [profileData, setProfileData] = useState(null);
   const [likedPosts, setLikedPosts] = useState({});
   const [comments, setComments] = useState({});
-  const [commentText, setCommentText] = useState('');
+  const [commentText, setCommentText] = useState(''); 
   const [commentModalVisible, setCommentModalVisible] = useState(false);
   const [selectedPostForComment, setSelectedPostForComment] = useState(null);
   const [loadingComments, setLoadingComments] = useState(false);
@@ -419,7 +419,7 @@ export default function Feed() {
     }
   };
 
-  const addComment = async () => {
+  const handleCommentSubmit = async () => { // ← Spremeni ime funkcije
     if (!commentText.trim() || !selectedPostForComment) {
       return;
     }
@@ -428,7 +428,7 @@ export default function Feed() {
       const { data: { user }, error: userError } = await supabase.auth.getUser();
       if (userError) throw userError;
 
-      const { data: profile, error: profileError } = await supabase
+      const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('username')
         .eq('id', user.id)
@@ -436,36 +436,31 @@ export default function Feed() {
 
       if (profileError) throw profileError;
 
-      const { error } = await supabase
+      const { error: commentError } = await supabase
         .from('comments')
         .insert([
           {
             post_id: selectedPostForComment,
             user_id: user.id,
-            username: profile.username,
-            content: commentText.trim(),
+            username: profileData.username,
+            content: commentText.trim()
           }
         ]);
 
-      if (error) throw error;
+      if (commentError) throw commentError;
 
-      // Update comment count in UI
-      setPosts(prevPosts => 
-        prevPosts.map(post => 
-          post.id === selectedPostForComment 
-            ? { ...post, commentCount: (post.commentCount || 0) + 1 }
-            : post
-        )
-      );
-
-      // Refresh comments for this post
-      fetchComments(selectedPostForComment);
       setCommentText('');
+      fetchComments(selectedPostForComment);
+      fetchPosts();
+
     } catch (err) {
       console.error('Error adding comment:', err);
       Alert.alert('Napaka', 'Napaka pri dodajanju komentarja.');
     }
   };
+
+  // Odstrani to obstoječo funkcijo:
+  // const addComment = async () => { ... }
 
   const deleteComment = async (commentId, postId) => {
     try {
@@ -1085,7 +1080,7 @@ export default function Feed() {
                       onPress={() => {
                         setCommentModalVisible(false);
                         setSelectedPostForComment(null);
-                        setCommentText('');
+                        setCommentText(''); // ← Spremeni na setCommentText
                       }}
                     >
                       <Text style={{fontSize: 20, fontWeight: 'bold'}}>✕</Text>
@@ -1112,10 +1107,10 @@ export default function Feed() {
                     <View style={feedStyles.commentInputContainer}>
                       <TextInput
                         style={feedStyles.commentInput}
-                        value={newComment}
-                        onChangeText={setNewComment}
+                        value={commentText} // ← Spremeni na commentText
+                        onChangeText={setCommentText} // ← Spremeni na setCommentText
                         placeholder="Kaj pa ti praviš na kavico..."
-                        multiline={false} // Ene vrstice input
+                        multiline={false}
                         returnKeyType="send"
                         onSubmitEditing={handleCommentSubmit}
                       />
