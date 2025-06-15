@@ -57,6 +57,9 @@ export default function Feed() {
 
   const fetchPosts = async () => {
     try {
+      // Reset loading images when fetching new posts
+      setLoadingImages({});
+      
       const { data, error } = await supabase
         .from('posts')
         .select(`
@@ -738,7 +741,7 @@ export default function Feed() {
           setSelectedPost(item);
         }}
       >
-        <View>
+        <View style={{ position: 'relative' }}>
           <Image 
             source={{ uri: item.image_url }} 
             style={feedStyles.image}
@@ -748,7 +751,16 @@ export default function Feed() {
                 [item.id]: true
               }));
             }}
-            onLoadEnd={() => {
+            onLoad={() => {
+              // Dodaj malo delay da se slika res prikaže
+              setTimeout(() => {
+                setLoadingImages(prev => ({
+                  ...prev,
+                  [item.id]: false
+                }));
+              }, 100);
+            }}
+            onError={() => {
               setLoadingImages(prev => ({
                 ...prev,
                 [item.id]: false

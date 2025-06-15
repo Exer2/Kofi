@@ -177,19 +177,6 @@ export const feedStyles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: 8,
   },
-  deleteButton: {
-    position: 'absolute',
-    bottom: 40,
-    padding: 15,
-    backgroundColor: '#dc3545',
-    borderRadius: 8,
-    zIndex: 1,
-  },
-  deleteButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
   interactionBar: {
     flexDirection: 'row',
     alignItems: 'center',

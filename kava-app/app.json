@@ -9,6 +9,7 @@
     "newArchEnabled": true,
     "scheme": "kavaapp",
     "owner": "mato24",
+    "platforms": ["ios", "android", "web"],
     "splash": {
       "image": "./assets/KavniJunak.png",
       "resizeMode": "cover",
@@ -30,7 +31,7 @@
       "favicon": "./assets/favicon.png",
       "bundler": "metro",
       "output": "static",
-      "staticRenderingEnabled": false
+      "publicPath": "/kofi/"
     },
     "plugins": [
       [
