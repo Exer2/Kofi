@@ -59,9 +59,13 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     flowType: 'pkce',
   },
   realtime: {
-    enabled: Platform.OS !== 'web', // Disable realtime on web
+    enabled: true, // Enable realtime for all platforms
+    params: {
+      eventsPerSecond: 10,
+    },
   },
 });
+
 
 
 export default supabase;

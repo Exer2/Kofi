@@ -544,152 +544,161 @@ export default function Feed() {
     
     getCurrentUser();
     
-    // Only set up realtime subscriptions on mobile platforms
-    if (Platform.OS !== 'web') {
-      // Subscribe to posts table changes
-      const postSubscription = supabase
-        .channel('public:posts')
-        .on('postgres_changes', 
-          { event: '*', schema: 'public', table: 'posts' }, 
-          payload => {
-            console.log('Posts change detected:', payload);
-            fetchPosts();
-          }
-        )
-        .subscribe();
-      
-      // Replace your existing like subscription
-      const likeSubscription = supabase
-        .channel('likes_channel')
-        .on('postgres_changes',
-          { event: '*', schema: 'public', table: 'likes' },
-          async payload => {
-            console.log('Like change detected:', payload);
+    // Set up realtime subscriptions for ALL platforms (including web)
+    console.log('Setting up realtime subscriptions for platform:', Platform.OS);
+    
+    // Subscribe to posts table changes
+    const postSubscription = supabase
+      .channel('public:posts')
+      .on('postgres_changes', 
+        { event: '*', schema: 'public', table: 'posts' }, 
+        payload => {
+          console.log('Posts change detected:', payload);
+          fetchPosts();
+        }
+      )
+      .subscribe();
+    
+    // Like subscription
+    const likeSubscription = supabase
+      .channel('likes_channel')
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'likes' },
+        async payload => {
+          console.log('Like change detected:', payload);
+          
+          // For DELETE events, payload.old might not contain post_id
+          if (payload.eventType === 'DELETE' && !payload.old.post_id) {
+            console.log('This is a DELETE event without post_id, refreshing all post counts');
             
-            // For DELETE events, payload.old might not contain post_id
-            if (payload.eventType === 'DELETE' && !payload.old.post_id) {
-              console.log('This is a DELETE event without post_id, refreshing all post counts');
-              
-              // Update counts for all posts when we can't determine which specific post was affected
-              try {
-                const { data, error } = await supabase
-                  .from('posts')
-                  .select(`
-                    id,
-                    likes:likes(count)
-                  `);
-                  
-                if (error) {
-                  console.error('Error fetching like counts:', error);
-                  return;
-                }
+            // Update counts for all posts when we can't determine which specific post was affected
+            try {
+              const { data, error } = await supabase
+                .from('posts')
+                .select(`
+                  id,
+                  likes:likes(count)
+                `);
                 
-                // Update like counts for all posts
-                setPosts(prevPosts => 
-                  prevPosts.map(post => {
-                    const postData = data.find(p => p.id === post.id);
-                    const likeCount = postData?.likes[0]?.count || 0;
-                    return {
-                      ...post,
-                      likeCount
-                    };
-                  })
-                );
-              } catch (err) {
-                console.error('Error updating likes:', err);
+              if (error) {
+                console.error('Error fetching like counts:', error);
+                return;
               }
-              return;
+              
+              // Update like counts for all posts
+              setPosts(prevPosts => 
+                prevPosts.map(post => {
+                  const postData = data.find(p => p.id === post.id);
+                  const likeCount = postData?.likes[0]?.count || 0;
+                  return {
+                    ...post,
+                    likeCount
+                  };
+                })
+              );
+            } catch (err) {
+              console.error('Error updating likes:', err);
             }
-            
-            // For other events, proceed with the normal flow
-            const postId = payload.new?.post_id || payload.old?.post_id;
-            
-            if (!postId) {
-              console.log('No postId found in payload');
+            return;
+          }
+          
+          // For other events, proceed with the normal flow
+          const postId = payload.new?.post_id || payload.old?.post_id;
+          
+          if (!postId) {
+            console.log('No postId found in payload');
+            return;
+          }
+
+          // Fetch the current accurate count from the database
+          try {
+            const { count, error } = await supabase
+              .from('likes')
+              .select('*', { count: 'exact', head: true })
+              .eq('post_id', postId);
+              
+            if (error) {
+              console.error('Error fetching like count:', error);
               return;
             }
 
-            // Fetch the current accurate count from the database
+            console.log(`Fetched updated like count for post ${postId}:`, count);
+            
+            // Update UI with accurate count
+            setPosts(prevPosts => 
+              prevPosts.map(post => 
+                post.id === postId 
+                  ? { ...post, likeCount: count }
+                  : post
+              )
+            );
+          } catch (err) {
+            console.error('Error in fetchUpdatedCount:', err);
+          }
+        }
+      )
+      .subscribe();
+
+    // Comment subscription
+    const commentSubscription = supabase
+      .channel('comments_channel')
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'comments' },
+        payload => {
+          console.log('Comment change detected:', payload);
+          
+          const postId = payload.new?.post_id || payload.old?.post_id;
+          
+          if (!postId) return;
+
+          const fetchCommentCount = async () => {
             try {
               const { count, error } = await supabase
-                .from('likes')
+                .from('comments')
                 .select('*', { count: 'exact', head: true })
                 .eq('post_id', postId);
-                
+              
               if (error) {
-                console.error('Error fetching like count:', error);
+                console.error('Error fetching comment count:', error);
                 return;
               }
 
-              console.log(`Fetched updated like count for post ${postId}:`, count);
-              
-              // Update UI with accurate count
               setPosts(prevPosts => 
                 prevPosts.map(post => 
                   post.id === postId 
-                    ? { ...post, likeCount: count }
+                    ? { ...post, commentCount: count }
                     : post
                 )
               );
-            } catch (err) {
-              console.error('Error in fetchUpdatedCount:', err);
-            }
-          }
-        )
-        .subscribe();
-
-      // Also fix the comment subscription for consistency
-      const commentSubscription = supabase
-        .channel('comments_channel')
-        .on('postgres_changes',
-          { event: '*', schema: 'public', table: 'comments' },
-          payload => {
-            console.log('Comment change detected:', payload);
-            
-            const postId = payload.new?.post_id || payload.old?.post_id;
-            
-            if (!postId) return;
-
-            const fetchCommentCount = async () => {
-              try {
-                const { count, error } = await supabase
-                  .from('comments')
-                  .select('*', { count: 'exact', head: true })
-                  .eq('post_id', postId);
-                
-                if (error) {
-                  console.error('Error fetching comment count:', error);
-                  return;
-                }
-
-                setPosts(prevPosts => 
-                  prevPosts.map(post => 
-                    post.id === postId 
-                      ? { ...post, commentCount: count }
-                      : post
-                  )
-                );
-                
-                // If currently viewing this post's comments, refresh them
-                if (selectedPostForComment === postId) {
-                  fetchComments(postId);
-                }
-              } catch (err) {
-                console.error('Error in fetchCommentCount:', err);
+              
+              // If currently viewing this post's comments, refresh them
+              if (selectedPostForComment === postId) {
+                fetchComments(postId);
               }
-            };
-            
-            fetchCommentCount();
-          }
-        )
-        .subscribe();
+            } catch (err) {
+              console.error('Error in fetchCommentCount:', err);
+            }
+          };
+          
+          fetchCommentCount();
+        }
+      )
+      .subscribe();
 
-      return () => {
-        postSubscription.unsubscribe();
-        likeSubscription.unsubscribe();
-        commentSubscription.unsubscribe();
-      };
-    }
+    // Check subscription status
+    setTimeout(() => {
+      console.log('Subscription statuses:');
+      console.log('Posts:', postSubscription.state);
+      console.log('Likes:', likeSubscription.state);
+      console.log('Comments:', commentSubscription.state);
+    }, 2000);
+
+    return () => {
+      console.log('Cleaning up realtime subscriptions');
+      postSubscription.unsubscribe();
+      likeSubscription.unsubscribe();
+      commentSubscription.unsubscribe();
+    };
   }, []);
 
   useEffect(() => {
@@ -975,10 +984,20 @@ export default function Feed() {
                       source={{ uri: selectedImage }}
                       style={feedStyles.fullImage}
                       resizeMode="contain"
-                      onLoadStart={() => setIsImageLoading(true)}
-                      onLoadEnd={() => setIsImageLoading(false)}
+                      onLoadStart={() => {
+                        // Only show loading on mobile platforms
+                        if (Platform.OS !== 'web') {
+                          setIsImageLoading(true);
+                        }
+                      }}
+                      onLoadEnd={() => {
+                        if (Platform.OS !== 'web') {
+                          setIsImageLoading(false);
+                        }
+                      }}
                     />
-                    {isImageLoading && (
+                    {/* Only show loading animation on mobile platforms */}
+                    {Platform.OS !== 'web' && isImageLoading && (
                       <View style={feedStyles.imageLoadingContainer}>
                         <ActivityIndicator size="large" color="white" />
                       </View>
