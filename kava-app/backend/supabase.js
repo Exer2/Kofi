@@ -2,61 +2,68 @@ import { AppState, Platform } from 'react-native';
 import 'react-native-url-polyfill/auto';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient } from '@supabase/supabase-js';
-import * as AuthSession from 'expo-auth-session';
 
-// Web kompatibilen način branja environment variables
-let REACT_APP_SUPABASE_URL, REACT_APP_SUPABASE_ANON_KEY;
+// Debug info
+console.log('Platform:', Platform.OS);
+console.log('Available env vars:', Object.keys(process.env).filter(k => k.includes('SUPABASE')));
+
+// Environment variables z multiple fallbacks
+let supabaseUrl, supabaseAnonKey;
 
 if (Platform.OS === 'web') {
-  // Web uporablja process.env
-  REACT_APP_SUPABASE_URL = process.env.REACT_APP_SUPABASE_URL;
-  REACT_APP_SUPABASE_ANON_KEY = process.env.REACT_APP_SUPABASE_ANON_KEY;
+  // Web production build - read from environment variables
+  supabaseUrl = process.env.REACT_APP_SUPABASE_URL || 
+               process.env.EXPO_PUBLIC_SUPABASE_URL;
+               
+  supabaseAnonKey = process.env.REACT_APP_SUPABASE_ANON_KEY || 
+                   process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 } else {
-  // Mobilne platforme uporabljajo @env
+  // Mobile platforms
   try {
-    const envVars = require('@env');
-    REACT_APP_SUPABASE_URL = envVars.REACT_APP_SUPABASE_URL;
-    REACT_APP_SUPABASE_ANON_KEY = envVars.REACT_APP_SUPABASE_ANON_KEY;
+    const { REACT_APP_SUPABASE_URL, REACT_APP_SUPABASE_ANON_KEY } = require('@env');
+    supabaseUrl = REACT_APP_SUPABASE_URL;
+    supabaseAnonKey = REACT_APP_SUPABASE_ANON_KEY;
   } catch (error) {
-    console.warn('Could not load @env:', error);
+    console.warn('Could not load @env');
+    // No fallback values - force proper environment setup
+    supabaseUrl = null;
+    supabaseAnonKey = null;
   }
 }
 
-// Preveri ali so environment variables nastavljene
-if (!REACT_APP_SUPABASE_URL || !REACT_APP_SUPABASE_ANON_KEY) {
-  throw new Error(
-    'Supabase configuration is missing!\n' +
-    'Please check that your .env file contains:\n' +
-    '- REACT_APP_SUPABASE_URL\n' +
-    '- REACT_APP_SUPABASE_ANON_KEY'
-  );
+// Validate that environment variables are loaded
+if (!supabaseUrl || !supabaseAnonKey) {
+  console.error('Supabase configuration missing!');
+  console.error('Please ensure the following environment variables are set:');
+  console.error('- REACT_APP_SUPABASE_URL');
+  console.error('- REACT_APP_SUPABASE_ANON_KEY');
+  throw new Error('Supabase configuration is missing. Check your environment variables.');
 }
 
-const redirectUrl = AuthSession.makeRedirectUri({
-  useProxy: true
-});
+console.log('Using Supabase URL:', supabaseUrl?.substring(0, 30) + '...');
+console.log('Using Supabase Key:', supabaseAnonKey?.substring(0, 30) + '...');
 
-export const supabase = createClient(REACT_APP_SUPABASE_URL, REACT_APP_SUPABASE_ANON_KEY, {
+// Storage adapter
+const storage = Platform.OS === 'web' ? 
+  {
+    getItem: (key) => Promise.resolve(localStorage.getItem(key)),
+    setItem: (key, value) => Promise.resolve(localStorage.setItem(key, value)),
+    removeItem: (key) => Promise.resolve(localStorage.removeItem(key)),
+  } : 
+  AsyncStorage;
+
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
-    storage: AsyncStorage,
+    storage,
     autoRefreshToken: true,
     persistSession: true,
-    detectSessionInUrl: true,
+    detectSessionInUrl: Platform.OS === 'web',
     flowType: 'pkce',
-    redirectTo: redirectUrl,
   },
   realtime: {
-    enabled: false,
+    enabled: Platform.OS !== 'web', // Disable realtime on web
   },
 });
 
-// Manage token refresh based on app state
-AppState.addEventListener('change', (state) => {
-  if (state === 'active') {
-    supabase.auth.startAutoRefresh();
-  } else {
-    supabase.auth.stopAutoRefresh();
-  }
-});
 
 export default supabase;

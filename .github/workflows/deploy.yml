@@ -48,17 +48,13 @@ jobs:
     - name: Fix paths for GitHub Pages subdirectory
       run: |
         cd kava-app/dist
-        # Fix HTML paths
-        sed -i 's|href="/|href="/Kofi/|g' index.html
-        sed -i 's|src="/|src="/Kofi/|g' index.html
-        # Fix JavaScript bundle paths
-        for file in $(find . -name "*.js"); do
-          sed -i 's|"/_expo/|"/Kofi/_expo/|g' "$file"
-          sed -i 's|"/static/|"/Kofi/static/|g' "$file"
-          sed -i 's|"/assets/|"/Kofi/assets/|g' "$file"
-        done
-        # Create 404.html for SPA routing
-        cp index.html 404.html
+        # Fix HTML paths more carefully
+        if [ -f index.html ]; then
+          sed -i 's|href="/\([^"]*\)"|href="/Kofi/\1"|g' index.html
+          sed -i 's|src="/\([^"]*\)"|src="/Kofi/\1"|g' index.html
+          # Create 404.html for SPA routing
+          cp index.html 404.html
+        fi
         
     - name: Deploy to GitHub Pages
       uses: peaceiris/actions-gh-pages@v3

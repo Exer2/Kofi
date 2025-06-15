@@ -544,149 +544,152 @@ export default function Feed() {
     
     getCurrentUser();
     
-    // Subscribe to posts table changes
-    const postSubscription = supabase
-      .channel('public:posts')
-      .on('postgres_changes', 
-        { event: '*', schema: 'public', table: 'posts' }, 
-        payload => {
-          console.log('Posts change detected:', payload);
-          fetchPosts();
-        }
-      )
-      .subscribe();
-    
-    // Replace your existing like subscription
-    const likeSubscription = supabase
-      .channel('likes_channel')
-      .on('postgres_changes',
-        { event: '*', schema: 'public', table: 'likes' },
-        async payload => {
-          console.log('Like change detected:', payload);
-          
-          // For DELETE events, payload.old might not contain post_id
-          if (payload.eventType === 'DELETE' && !payload.old.post_id) {
-            console.log('This is a DELETE event without post_id, refreshing all post counts');
+    // Only set up realtime subscriptions on mobile platforms
+    if (Platform.OS !== 'web') {
+      // Subscribe to posts table changes
+      const postSubscription = supabase
+        .channel('public:posts')
+        .on('postgres_changes', 
+          { event: '*', schema: 'public', table: 'posts' }, 
+          payload => {
+            console.log('Posts change detected:', payload);
+            fetchPosts();
+          }
+        )
+        .subscribe();
+      
+      // Replace your existing like subscription
+      const likeSubscription = supabase
+        .channel('likes_channel')
+        .on('postgres_changes',
+          { event: '*', schema: 'public', table: 'likes' },
+          async payload => {
+            console.log('Like change detected:', payload);
             
-            // Update counts for all posts when we can't determine which specific post was affected
-            try {
-              const { data, error } = await supabase
-                .from('posts')
-                .select(`
-                  id,
-                  likes:likes(count)
-                `);
+            // For DELETE events, payload.old might not contain post_id
+            if (payload.eventType === 'DELETE' && !payload.old.post_id) {
+              console.log('This is a DELETE event without post_id, refreshing all post counts');
+              
+              // Update counts for all posts when we can't determine which specific post was affected
+              try {
+                const { data, error } = await supabase
+                  .from('posts')
+                  .select(`
+                    id,
+                    likes:likes(count)
+                  `);
+                  
+                if (error) {
+                  console.error('Error fetching like counts:', error);
+                  return;
+                }
                 
-              if (error) {
-                console.error('Error fetching like counts:', error);
-                return;
+                // Update like counts for all posts
+                setPosts(prevPosts => 
+                  prevPosts.map(post => {
+                    const postData = data.find(p => p.id === post.id);
+                    const likeCount = postData?.likes[0]?.count || 0;
+                    return {
+                      ...post,
+                      likeCount
+                    };
+                  })
+                );
+              } catch (err) {
+                console.error('Error updating likes:', err);
               }
-              
-              // Update like counts for all posts
-              setPosts(prevPosts => 
-                prevPosts.map(post => {
-                  const postData = data.find(p => p.id === post.id);
-                  const likeCount = postData?.likes[0]?.count || 0;
-                  return {
-                    ...post,
-                    likeCount
-                  };
-                })
-              );
-            } catch (err) {
-              console.error('Error updating likes:', err);
+              return;
             }
-            return;
-          }
-          
-          // For other events, proceed with the normal flow
-          const postId = payload.new?.post_id || payload.old?.post_id;
-          
-          if (!postId) {
-            console.log('No postId found in payload');
-            return;
-          }
-
-          // Fetch the current accurate count from the database
-          try {
-            const { count, error } = await supabase
-              .from('likes')
-              .select('*', { count: 'exact', head: true })
-              .eq('post_id', postId);
-              
-            if (error) {
-              console.error('Error fetching like count:', error);
+            
+            // For other events, proceed with the normal flow
+            const postId = payload.new?.post_id || payload.old?.post_id;
+            
+            if (!postId) {
+              console.log('No postId found in payload');
               return;
             }
 
-            console.log(`Fetched updated like count for post ${postId}:`, count);
-            
-            // Update UI with accurate count
-            setPosts(prevPosts => 
-              prevPosts.map(post => 
-                post.id === postId 
-                  ? { ...post, likeCount: count }
-                  : post
-              )
-            );
-          } catch (err) {
-            console.error('Error in fetchUpdatedCount:', err);
-          }
-        }
-      )
-      .subscribe();
-
-    // Also fix the comment subscription for consistency
-    const commentSubscription = supabase
-      .channel('comments_channel')
-      .on('postgres_changes',
-        { event: '*', schema: 'public', table: 'comments' },
-        payload => {
-          console.log('Comment change detected:', payload);
-          
-          const postId = payload.new?.post_id || payload.old?.post_id;
-          
-          if (!postId) return;
-
-          const fetchCommentCount = async () => {
+            // Fetch the current accurate count from the database
             try {
               const { count, error } = await supabase
-                .from('comments')
+                .from('likes')
                 .select('*', { count: 'exact', head: true })
                 .eq('post_id', postId);
                 
               if (error) {
-                console.error('Error fetching comment count:', error);
+                console.error('Error fetching like count:', error);
                 return;
               }
 
+              console.log(`Fetched updated like count for post ${postId}:`, count);
+              
+              // Update UI with accurate count
               setPosts(prevPosts => 
                 prevPosts.map(post => 
                   post.id === postId 
-                    ? { ...post, commentCount: count }
+                    ? { ...post, likeCount: count }
                     : post
                 )
               );
-              
-              // If currently viewing this post's comments, refresh them
-              if (selectedPostForComment === postId) {
-                fetchComments(postId);
-              }
             } catch (err) {
-              console.error('Error in fetchCommentCount:', err);
+              console.error('Error in fetchUpdatedCount:', err);
             }
-          };
-          
-          fetchCommentCount();
-        }
-      )
-      .subscribe();
+          }
+        )
+        .subscribe();
 
-    return () => {
-      postSubscription.unsubscribe();
-      likeSubscription.unsubscribe();
-      commentSubscription.unsubscribe();
-    };
+      // Also fix the comment subscription for consistency
+      const commentSubscription = supabase
+        .channel('comments_channel')
+        .on('postgres_changes',
+          { event: '*', schema: 'public', table: 'comments' },
+          payload => {
+            console.log('Comment change detected:', payload);
+            
+            const postId = payload.new?.post_id || payload.old?.post_id;
+            
+            if (!postId) return;
+
+            const fetchCommentCount = async () => {
+              try {
+                const { count, error } = await supabase
+                  .from('comments')
+                  .select('*', { count: 'exact', head: true })
+                  .eq('post_id', postId);
+                
+                if (error) {
+                  console.error('Error fetching comment count:', error);
+                  return;
+                }
+
+                setPosts(prevPosts => 
+                  prevPosts.map(post => 
+                    post.id === postId 
+                      ? { ...post, commentCount: count }
+                      : post
+                  )
+                );
+                
+                // If currently viewing this post's comments, refresh them
+                if (selectedPostForComment === postId) {
+                  fetchComments(postId);
+                }
+              } catch (err) {
+                console.error('Error in fetchCommentCount:', err);
+              }
+            };
+            
+            fetchCommentCount();
+          }
+        )
+        .subscribe();
+
+      return () => {
+        postSubscription.unsubscribe();
+        likeSubscription.unsubscribe();
+        commentSubscription.unsubscribe();
+      };
+    }
   }, []);
 
   useEffect(() => {
@@ -750,62 +753,80 @@ export default function Feed() {
                 ...prev,
                 [item.id]: true
               }));
-            }}
-            onLoadEnd={() => {
-              setLoadingImages(prev => ({
-                ...prev,
-                [item.id]: false
-              }));
-            }}
-            onError={() => {
-              setLoadingImages(prev => ({
-                ...prev,
-                [item.id]: false
-              }));
-            }}
-          />
-          {loadingImages[item.id] && (
-            <View style={feedStyles.imageLoadingOverlay}>
-              <ActivityIndicator size="large" color="white" />
-            </View>
-          )}
-        </View>
-      </TouchableOpacity>
-      {item.description && (
-        <Text style={feedStyles.description}>{item.description}</Text>
-      )}
-      {item.rating && (
-        <View style={feedStyles.ratingDisplay}>
-          <Text style={feedStyles.ratingText}>
-            {'★'.repeat(item.rating)}{'☆'.repeat(5-item.rating)}
-          </Text>
-        </View>
-      )}
-      <View style={feedStyles.interactionBar}>
-        <TouchableOpacity 
-          onPress={() => toggleLike(item.id)}
-          style={feedStyles.likeButton}
-        >
-          {likedPosts[item.id] ? (
-            <HeartFilledIcon width={24} height={24} fill="#ff4444" />
-          ) : (
-            <HeartOutlineIcon width={24} height={24} fill="#555" />
-          )}
-        </TouchableOpacity>
-        <Text style={feedStyles.likeCount}>
-          {item.likeCount || 0}
-        </Text>
-        <TouchableOpacity 
-          onPress={() => showCommentModal(item.id)}
-          style={feedStyles.commentButton}
-        >
-          <MyCommentIcon width={20} height={20} fill="#555" />
-        </TouchableOpacity>
-        <Text style={feedStyles.commentCount}>
-          {item.commentCount || 0}
+            
+            // Web fallback - set timeout to hide loading after 10 seconds
+            if (Platform.OS === 'web') {
+              setTimeout(() => {
+                setLoadingImages(prev => ({
+                  ...prev,
+                  [item.id]: false
+                }));
+              }, 10000);
+            }
+          }}
+          onLoad={() => {
+            // Triggered when image loads successfully
+            setLoadingImages(prev => ({
+              ...prev,
+              [item.id]: false
+            }));
+          }}
+          onLoadEnd={() => {
+            // Triggered when loading finishes (success or error)
+            setLoadingImages(prev => ({
+              ...prev,
+              [item.id]: false
+            }));
+          }}
+          onError={() => {
+            setLoadingImages(prev => ({
+              ...prev,
+              [item.id]: false
+            }));
+          }}
+        />
+        {loadingImages[item.id] && (
+          <View style={feedStyles.imageLoadingOverlay}>
+            <ActivityIndicator size="large" color="white" />
+          </View>
+        )}
+      </View>
+    </TouchableOpacity>
+    {item.description && (
+      <Text style={feedStyles.description}>{item.description}</Text>
+    )}
+    {item.rating && (
+      <View style={feedStyles.ratingDisplay}>
+        <Text style={feedStyles.ratingText}>
+          {'★'.repeat(item.rating)}{'☆'.repeat(5-item.rating)}
         </Text>
       </View>
+    )}
+    <View style={feedStyles.interactionBar}>
+      <TouchableOpacity 
+        onPress={() => toggleLike(item.id)}
+        style={feedStyles.likeButton}
+      >
+        {likedPosts[item.id] ? (
+          <HeartFilledIcon width={24} height={24} fill="#ff4444" />
+        ) : (
+          <HeartOutlineIcon width={24} height={24} fill="#555" />
+        )}
+      </TouchableOpacity>
+      <Text style={feedStyles.likeCount}>
+        {item.likeCount || 0}
+      </Text>
+      <TouchableOpacity 
+        onPress={() => showCommentModal(item.id)}
+        style={feedStyles.commentButton}
+      >
+        <MyCommentIcon width={20} height={20} fill="#555" />
+      </TouchableOpacity>
+      <Text style={feedStyles.commentCount}>
+        {item.commentCount || 0}
+      </Text>
     </View>
+  </View>
   );
 
   const renderRatingStars = () => (
