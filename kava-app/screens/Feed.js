@@ -751,14 +751,11 @@ export default function Feed() {
                 [item.id]: true
               }));
             }}
-            onLoad={() => {
-              // Dodaj malo delay da se slika res prikaže
-              setTimeout(() => {
-                setLoadingImages(prev => ({
-                  ...prev,
-                  [item.id]: false
-                }));
-              }, 100);
+            onLoadEnd={() => {
+              setLoadingImages(prev => ({
+                ...prev,
+                [item.id]: false
+              }));
             }}
             onError={() => {
               setLoadingImages(prev => ({

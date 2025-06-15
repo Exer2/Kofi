@@ -5,6 +5,8 @@ export const feedStyles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#fff',
     padding: 16,
+    minHeight: '100vh', // Dodaj to za web scroll
+    overflow: Platform.OS === 'web' ? 'auto' : 'visible', // Dodaj za web
   },
   postContainer: {
     marginBottom: 16,
