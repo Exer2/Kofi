@@ -8,8 +8,9 @@ import { LogBox } from 'react-native';
 import Login from './screens/Login';
 import Register from './screens/Register';
 import Feed from './screens/Feed';
+import { Ionicons } from '@expo/vector-icons';
 
-// Add web-specific meta tags and CSS - Več comprehensive kot prej
+// Add web-specific meta tags
 if (Platform.OS === 'web') {
   // Add viewport meta if not exists
   if (!document.querySelector('meta[name="viewport"]')) {
@@ -19,95 +20,24 @@ if (Platform.OS === 'web') {
     document.head.appendChild(meta);
   }
   
-  // Add comprehensive CSS to prevent zoom and improve touch experience
+  // Add CSS to prevent zoom
   const style = document.createElement('style');
   style.textContent = `
     * {
       -webkit-tap-highlight-color: transparent;
       -webkit-touch-callout: none;
-      -webkit-user-select: none;
-      -moz-user-select: none;
-      -ms-user-select: none;
-      user-select: none;
     }
     
-    /* Prevent zoom on double tap */
-    button, [role="button"], .touchable, input, textarea {
+    button, [role="button"], .touchable {
       touch-action: manipulation;
-      -webkit-touch-callout: none;
-      -webkit-tap-highlight-color: transparent;
     }
     
-    /* Prevent zoom on form inputs */
-    input, textarea, select {
-      font-size: 16px !important;
-      transform-origin: left top;
-      -webkit-appearance: none;
-    }
-    
-    /* Body level zoom prevention */
     body {
       touch-action: manipulation;
       -webkit-text-size-adjust: 100%;
-      -webkit-user-select: none;
-      -moz-user-select: none;
-      -ms-user-select: none;
-      user-select: none;
-      overflow-x: hidden;
-    }
-    
-    /* Prevent zoom on iOS Safari */
-    @supports (-webkit-touch-callout: none) {
-      input, textarea {
-        font-size: 16px !important;
-      }
-    }
-    
-    /* Additional iOS Safari specific fixes */
-    input:focus, textarea:focus {
-      font-size: 16px !important;
-      zoom: 1;
-      -webkit-user-select: text;
-      -moz-user-select: text;
-      -ms-user-select: text;
-      user-select: text;
-    }
-    
-    /* Disable selection on non-input elements */
-    div, span, p, h1, h2, h3, h4, h5, h6, img {
-      -webkit-user-select: none;
-      -moz-user-select: none;
-      -ms-user-select: none;
-      user-select: none;
     }
   `;
   document.head.appendChild(style);
-  
-  // Add additional script to prevent zoom programmatically
-  const script = document.createElement('script');
-  script.textContent = `
-    document.addEventListener('gesturestart', function (e) {
-      e.preventDefault();
-    });
-    
-    document.addEventListener('gesturechange', function (e) {
-      e.preventDefault();
-    });
-    
-    document.addEventListener('gestureend', function (e) {
-      e.preventDefault();
-    });
-    
-    let lastTouchEnd = 0;
-    document.addEventListener('touchend', function (event) {
-      const now = (new Date()).getTime();
-      if (now - lastTouchEnd <= 300) {
-        event.preventDefault();
-      }
-      lastTouchEnd = now;
-    }, false);
-  `;
-  document.head.appendChild(script);
 }
 
 // Keep the splash screen visible while we fetch resources
@@ -175,37 +105,15 @@ export default function App() {
           component={HomeScreen} 
           options={{ headerShown: false }} 
         />
-        <Stack.Screen 
-          name="Login" 
-          component={Login}
-          options={{ 
-            title: 'Prijava',
-            headerBackTitleVisible: false 
-          }}
-        />
-        <Stack.Screen 
-          name="Register" 
-          component={Register}
-          options={{ 
-            title: 'Registracija',
-            headerBackTitleVisible: false 
-          }}
-        />
-        <Stack.Screen 
-          name="Feed" 
-          component={Feed}
-          options={{ 
-            title: 'Kofi',
-            headerLeft: null, // Remove back button
-            gestureEnabled: false, // Disable swipe back gesture
-          }}
-        />
+        <Stack.Screen name="Login" component={Login} />
+        <Stack.Screen name="Register" component={Register} />
+        <Stack.Screen name="Feed" component={Feed} />
       </Stack.Navigator>
     </NavigationContainer>
   );
 }
 
-// Your HomeScreen component
+// Your HomeScreen component remains the same
 function HomeScreen({ navigation }) {
   return (
     <View style={styles.container}>
@@ -213,7 +121,6 @@ function HomeScreen({ navigation }) {
       <TouchableOpacity
         style={styles.circleButton}
         onPress={() => navigation.navigate('Login')}
-        activeOpacity={0.8}
       >
         <Text style={styles.arrowText}>&gt;</Text>
       </TouchableOpacity>
@@ -247,10 +154,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 3,
-    ...(Platform.OS === 'web' && {
-      touchAction: 'manipulation',
-      WebkitTapHighlightColor: 'transparent',
-    }),
   },
   arrowText: {
     color: 'white',

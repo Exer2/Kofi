@@ -121,11 +121,6 @@ export const commentStyles = StyleSheet.create({
     fontSize: 16,
     backgroundColor: '#f9f9f9',
     minHeight: 44,
-    ...(Platform.OS === 'web' && {
-      fontSize: 16, // Prevent zoom on iOS Safari
-      outline: 'none',
-      touchAction: 'manipulation',
-    }),
   },
   
   commentSubmitButton: {
