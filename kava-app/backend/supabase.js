@@ -3,9 +3,6 @@ import 'react-native-url-polyfill/auto';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient } from '@supabase/supabase-js';
 
-// Debug info
-console.log('Platform:', Platform.OS);
-console.log('Available env vars:', Object.keys(process.env).filter(k => k.includes('SUPABASE')));
 
 // Environment variables z multiple fallbacks
 let supabaseUrl, supabaseAnonKey;

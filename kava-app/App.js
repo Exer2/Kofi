@@ -8,9 +8,8 @@ import { LogBox } from 'react-native';
 import Login from './screens/Login';
 import Register from './screens/Register';
 import Feed from './screens/Feed';
-import { Ionicons } from '@expo/vector-icons';
 
-// Add web-specific meta tags
+// Add web-specific meta tags and CSS - Več comprehensive kot prej
 if (Platform.OS === 'web') {
   // Add viewport meta if not exists
   if (!document.querySelector('meta[name="viewport"]')) {
@@ -19,33 +18,21 @@ if (Platform.OS === 'web') {
     meta.content = 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover';
     document.head.appendChild(meta);
   }
+}  
   
-  // Add CSS to prevent zoom
-  const style = document.createElement('style');
-  style.textContent = `
-    * {
-      -webkit-tap-highlight-color: transparent;
-      -webkit-touch-callout: none;
-    }
-    
-    button, [role="button"], .touchable {
-      touch-action: manipulation;
-    }
-    
-    body {
-      touch-action: manipulation;
-      -webkit-text-size-adjust: 100%;
-    }
-  `;
-  document.head.appendChild(style);
-}
+
+
 
 // Keep the splash screen visible while we fetch resources
 SplashScreen.preventAutoHideAsync();
 
 if (!__DEV__) {
   // Production-only code
-  console.log = () => {}; // Disable console logs in production
+  console.log = () => {};
+  console.warn = () => {};
+  console.error = () => {};
+  console.info = () => {};
+  console.debug = () => {};
   LogBox.ignoreAllLogs(); // Ignore warnings in production
 }
 
@@ -105,15 +92,37 @@ export default function App() {
           component={HomeScreen} 
           options={{ headerShown: false }} 
         />
-        <Stack.Screen name="Login" component={Login} />
-        <Stack.Screen name="Register" component={Register} />
-        <Stack.Screen name="Feed" component={Feed} />
+        <Stack.Screen 
+          name="Login" 
+          component={Login}
+          options={{ 
+            title: 'Prijava',
+            headerBackTitleVisible: false 
+          }}
+        />
+        <Stack.Screen 
+          name="Register" 
+          component={Register}
+          options={{ 
+            title: 'Registracija',
+            headerBackTitleVisible: false 
+          }}
+        />
+        <Stack.Screen 
+          name="Feed" 
+          component={Feed}
+          options={{ 
+            title: 'Kofi',
+            headerLeft: null, // Remove back button
+            gestureEnabled: false, // Disable swipe back gesture
+          }}
+        />
       </Stack.Navigator>
     </NavigationContainer>
   );
 }
 
-// Your HomeScreen component remains the same
+// Your HomeScreen component
 function HomeScreen({ navigation }) {
   return (
     <View style={styles.container}>
@@ -121,6 +130,7 @@ function HomeScreen({ navigation }) {
       <TouchableOpacity
         style={styles.circleButton}
         onPress={() => navigation.navigate('Login')}
+        activeOpacity={0.8}
       >
         <Text style={styles.arrowText}>&gt;</Text>
       </TouchableOpacity>
@@ -154,6 +164,10 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 3,
+    ...(Platform.OS === 'web' && {
+      touchAction: 'manipulation',
+      WebkitTapHighlightColor: 'transparent',
+    }),
   },
   arrowText: {
     color: 'white',
