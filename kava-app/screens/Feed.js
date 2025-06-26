@@ -1,781 +1,93 @@
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   View, 
   Text, 
   FlatList, 
-  Image, 
   TouchableOpacity, 
   Alert,
-  Modal,
-  TextInput,
   Platform,
-  KeyboardAvoidingView,
-  ActivityIndicator,
-  ActionSheetIOS,
-  TouchableWithoutFeedback,
   Keyboard,
-  Dimensions,
   LayoutAnimation,
   UIManager,
-  Animated,
 } from 'react-native';
-import * as ImagePicker from 'expo-image-picker';
-import { supabase } from '../backend/supabase';
+import { supabase } from '../backend/supabase'; // ← Dodaj ta import
 import { feedStyles } from '../Styles/feedStyles';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import MyCommentIcon from '../Styles/ikonce';
-import HeartOutlineIcon from '../Styles/HeartOutlineIcon';
-import HeartFilledIcon from '../Styles/HeartFilledIcon';
-import { Swipeable } from 'react-native-gesture-handler';
+import useFeedData from '../hooks/useFeedData';
+import PostItem from '../components/PostItem';
+import PostModal from '../components/PostModal';
+import ImageModal from '../components/ImageModal';
+import CommentModal from '../components/CommentModal';
+import { handleImagePicker, handleUpload } from '../utils/imageUtils';
+import { toggleLike, handleCommentSubmit, deleteComment } from '../utils/feedUtils';
 
-if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
-  UIManager.setLayoutAnimationEnabledExperimental(true);
-}
+// Zamenjaj celotno vsebino Feed.js z novo, krajšo verzijo iz mojega prejšnjega odgovora
 
 export default function Feed() {
-  const [posts, setPosts] = useState([]);
-  const [error, setError] = useState(null);
-  const [refreshing, setRefreshing] = useState(false);
-  const [isModalVisible, setIsModalVisible] = useState(false);
-  const [description, setDescription] = useState('');
-  const [rating, setRating] = useState(3);
-  const [pendingUpload, setPendingUpload] = useState(null);
-  const [selectedImage, setSelectedImage] = useState(null);
-  const [isUploading, setIsUploading] = useState(false);
-  const [isImageLoading, setIsImageLoading] = useState(false);
-  const [loadingImages, setLoadingImages] = useState({});
-  const [selectedPost, setSelectedPost] = useState(null);
-  const [profileData, setProfileData] = useState(null);
-  const [likedPosts, setLikedPosts] = useState({});
-  const [comments, setComments] = useState({});
-  const [commentText, setCommentText] = useState(''); 
-  const [commentModalVisible, setCommentModalVisible] = useState(false);
-  const [selectedPostForComment, setSelectedPostForComment] = useState(null);
-  const [loadingComments, setLoadingComments] = useState(false);
-  const [keyboardVisible, setKeyboardVisible] = useState(false);
-  const [currentUser, setCurrentUser] = useState(null);
-
-  const fetchPosts = async () => {
-    try {
-      // Reset loading images when fetching new posts
-      setLoadingImages({});
-      
-      const { data, error } = await supabase
-        .from('posts')
-        .select(`
-          *,
-          likes:likes(count),
-          comments:comments(count)
-        `)
-        .order('created_at', { ascending: false });
-      if (error) throw error;
-      
-      const postsWithStats = data.map(post => ({
-        ...post,
-        likeCount: post.likes[0]?.count || 0,
-        commentCount: post.comments[0]?.count || 0
-      }));
-      
-      setPosts(postsWithStats);
-    } catch (err) {
-      console.error('Error fetching posts:', err);
-      setError('Napaka pri nalaganju objav.');
-    }
-  };
-
-  const fetchUserProfile = async () => {
-    try {
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-      if (userError) throw userError;
-
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('username')
-        .eq('id', user.id)
-        .single();
-
-      if (profileError) throw profileError;
-      setProfileData(profile);
-    } catch (err) {
-      console.error('Error fetching user profile:', err);
-    }
-  };
-
-  const fetchLikes = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      const { data, error } = await supabase
-        .from('likes')
-        .select('post_id')
-        .eq('user_id', user.id);
-      
-      if (error) throw error;
-      
-      const likesMap = data.reduce((acc, like) => {
-        acc[like.post_id] = true;
-        return acc;
-      }, {});
-      
-      setLikedPosts(likesMap);
-    } catch (err) {
-      console.error('Error fetching likes:', err);
-    }
-  };
-
-  const toggleLike = async (postId) => {
-    if (!currentUser) {
-      Alert.alert('Napaka', 'Morate biti prijavljeni za všečkanje objav.');
-      return;
-    }
-
-    const isLiked = likedPosts[postId];
-    
-    // Optimistic update - posodobi UI takoj
-    setLikedPosts(prev => ({
-      ...prev,
-      [postId]: !isLiked
-    }));
-    
-    // Tudi optimistic update za count
-    setPosts(prevPosts => 
-      prevPosts.map(post => 
-        post.id === postId 
-          ? { 
-              ...post, 
-              likeCount: (post.likeCount || 0) + (!isLiked ? 1 : -1)
-            }
-          : post
-      )
-    );
-
-    try {
-      if (isLiked) {
-        // Remove like
-        const { error } = await supabase
-          .from('likes')
-          .delete()
-          .eq('post_id', postId)
-          .eq('user_id', currentUser.id);
-
-        if (error) throw error;
-        console.log('Like removed for post:', postId);
-      } else {
-        // Add like
-        const { error } = await supabase
-          .from('likes')
-          .insert([{
-            post_id: postId,
-            user_id: currentUser.id
-          }]);
-
-        if (error) throw error;
-        console.log('Like added for post:', postId);
-      }
-    } catch (err) {
-      console.error('Error toggling like:', err);
-      
-      // Revert optimistic update on error
-      setLikedPosts(prev => ({
-        ...prev,
-        [postId]: isLiked // Revert to original state
-      }));
-      
-      setPosts(prevPosts => 
-        prevPosts.map(post => 
-          post.id === postId 
-            ? { 
-                ...post, 
-                likeCount: (post.likeCount || 0) - (!isLiked ? 1 : -1) // Revert count
-              }
-            : post
-        )
-      );
-      
-      Alert.alert('Napaka', 'Napaka pri všečkanju objave.');
-    }
-  };
-
-  const handleAddImage = async () => {
-    try {
-      if (Platform.OS === 'web') {
-        // Web-specific image picker
-        const input = document.createElement('input');
-        input.type = 'file';
-        input.accept = 'image/*';
-        input.onchange = async (event) => {
-          const file = event.target.files[0];
-          if (file) {
-            // Create blob URL for preview
-            const uri = URL.createObjectURL(file);
-            const fileName = `image-${Date.now()}.jpg`;
-            
-            setPendingUpload({
-              asset: { uri, file }, // Include the file object for web
-              fileName,
-              formData: new FormData()
-            });
-            setIsModalVisible(true);
-          }
-        };
-        input.click();
-        return;
-      }
-
-      // Mobile platforms
-      const galleryStatus = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      const cameraStatus = await ImagePicker.requestCameraPermissionsAsync();
-
-      if (!galleryStatus.granted || !cameraStatus.granted) {
-        Alert.alert('Dovoljenje', 'Potrebujemo dovoljenje za dostop do galerije in kamere.');
-        return;
-      }
-
-      if (Platform.OS === 'ios') {
-        ActionSheetIOS.showActionSheetWithOptions(
-          {
-            options: ['Prekliči', 'Izberi iz galerije', 'Fotografiraj'],
-            cancelButtonIndex: 0,
-          },
-          async (buttonIndex) => {
-            if (buttonIndex === 1) {
-              await pickImage();
-            } else if (buttonIndex === 2) {
-              await takePhoto();
-            }
-          }
-        );
-      } else {
-        Alert.alert(
-          'Dodaj sliko',
-          'Izberite vir slike',
-          [
-            { text: 'Prekliči', style: 'cancel' },
-            { text: 'Izberi iz galerije', onPress: () => pickImage() },
-            { text: 'Fotografiraj', onPress: () => takePhoto() },
-          ]
-        );
-      }
-    } catch (err) {
-      console.error('Error in handleAddImage:', err);
-      setError('Napaka pri izbiri slike.');
-    }
-  };
-
-  const pickImage = async () => {
-    try {
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 0.8,
-      });
-
-      if (!result.canceled) {
-        const asset = result.assets[0];
-        const fileName = `image-${Date.now()}.jpg`;
-        setPendingUpload({
-          asset,
-          fileName,
-          formData: new FormData()
-        });
-        setIsModalVisible(true);
-      }
-    } catch (err) {
-      console.error('Error picking image:', err);
-      setError('Napaka pri izbiri slike iz galerije.');
-    }
-  };
-
-  const takePhoto = async () => {
-    try {
-      const result = await ImagePicker.launchCameraAsync({
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 0.8,
-      });
-
-      if (!result.canceled) {
-        const asset = result.assets[0];
-        const fileName = `image-${Date.now()}.jpg`;
-        setPendingUpload({
-          asset,
-          fileName,
-          formData: new FormData()
-        });
-        setIsModalVisible(true);
-      }
-    } catch (err) {
-      console.error('Error taking photo:', err);
-      setError('Napaka pri fotografiranju.');
-    }
-  };
-
-  const handleUploadWithDetails = async () => {
-    try {
-      setIsUploading(true);
-      
-      if (!pendingUpload) {
-        Alert.alert('Napaka', 'Ni slike za nalaganje.');
-        return;
-      }
-
-      const uniqueFileName = `image-${Date.now()}-${Math.random().toString(36).substr(2, 9)}.jpg`;
-
-      let uploadData;
-      
-      if (Platform.OS === 'web') {
-        // Web upload using File object
-        uploadData = pendingUpload.asset.file;
-      } else {
-        // Mobile upload using FormData
-        const formData = new FormData();
-        formData.append('file', {
-          uri: pendingUpload.asset.uri,
-          name: uniqueFileName,
-          type: 'image/jpeg'
-        });
-        uploadData = formData;
-      }
-
-      const { error: uploadError } = await supabase.storage
-        .from('posts')
-        .upload(uniqueFileName, uploadData, {
-          contentType: Platform.OS === 'web' ? pendingUpload.asset.file.type : 'multipart/form-data',
-          upsert: true
-        });
-
-      if (uploadError) {
-        console.error('Upload Error:', uploadError);
-        throw uploadError;
-      }
-
-      const { data } = supabase.storage
-        .from('posts')
-        .getPublicUrl(uniqueFileName);
-          
-      if (!data?.publicUrl) {
-        throw new Error('Missing public URL');
-      }
-
-      const { data: userData, error: userError } = await supabase.auth.getUser();
-      if (userError) throw userError;
-
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('username')
-        .eq('id', userData.user.id)
-        .single();
-
-      if (profileError) throw profileError;
-
-      const { error: postError } = await supabase
-        .from('posts')
-        .insert([
-          {
-            image_url: data.publicUrl,
-            username: profileData?.username || 'unknown_user',
-            description: description.trim(),
-            rating: parseInt(rating)
-          },
-        ])
-        .select();
-
-      if (postError) {
-        console.error('Post Error:', postError);
-        throw postError;
-      }
-
-      // Clean up web blob URL
-      if (Platform.OS === 'web' && pendingUpload.asset.uri) {
-        URL.revokeObjectURL(pendingUpload.asset.uri);
-      }
-
-      setIsModalVisible(false);
-      setPendingUpload(null);
-      setDescription('');
-      setRating(3);
-      Alert.alert('Uspeh', 'Objava uspešno dodana!');
-      fetchPosts();
-
-    } catch (err) {
-      console.error('Error in handleUploadWithDetails:', err);
-      Alert.alert('Napaka', 'Napaka pri nalaganju objave. Poskusite ponovno.');
-      setError('Napaka pri nalaganju objave.');
-    } finally {
-      setIsUploading(false);
-    }
-  };
-
-  const handleDelete = async (postId, imageUrl) => {
-    try {
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-      if (userError) throw userError;
-
-      const fileName = imageUrl.split('/').pop();
-
-      const { error: storageError } = await supabase.storage
-        .from('posts')
-        .remove([fileName]);
-      if (storageError) throw storageError;
-
-      const { error: deleteError } = await supabase
-        .from('posts')
-        .delete()
-        .eq('id', postId);
-      if (deleteError) throw deleteError;
-
-      setSelectedImage(null);
-      setSelectedPost(null);
-      fetchPosts();
-      Alert.alert('Uspeh', 'Objava je bila izbrisana.');
-    } catch (err) {
-      console.error('Error deleting post:', err);
-      Alert.alert('Napaka', 'Napaka pri brisanju objave.');
-    }
-  };
-
-  const fetchComments = async (postId) => {
-    try {
-      setLoadingComments(true);
-      const { data, error } = await supabase
-        .from('comments')
-        .select('*')
-        .eq('post_id', postId)
-        .order('created_at', { ascending: true });
-      
-      if (error) throw error;
-      
-      setComments(prevComments => ({
-        ...prevComments,
-        [postId]: data
-      }));
-    } catch (err) {
-      console.error('Error fetching comments:', err);
-      Alert.alert('Napaka', 'Napaka pri nalaganju komentarjev.');
-    } finally {
-      setLoadingComments(false);
-    }
-  };
-
-  const handleCommentSubmit = async () => { // ← Spremeni ime funkcije
-    if (!commentText.trim() || !selectedPostForComment) {
-      return;
-    }
-    
-    try {
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-      if (userError) throw userError;
-
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('username')
-        .eq('id', user.id)
-        .single();
-
-      if (profileError) throw profileError;
-
-      const { error: commentError } = await supabase
-        .from('comments')
-        .insert([
-          {
-            post_id: selectedPostForComment,
-            user_id: user.id,
-            username: profileData.username,
-            content: commentText.trim()
-          }
-        ]);
-
-      if (commentError) throw commentError;
-
-      setCommentText('');
-      fetchComments(selectedPostForComment);
-      fetchPosts();
-
-    } catch (err) {
-      console.error('Error adding comment:', err);
-      Alert.alert('Napaka', 'Napaka pri dodajanju komentarja.');
-    }
-  };
-
-  // Odstrani to obstoječo funkcijo:
-  // const addComment = async () => { ... }
-
-  const deleteComment = async (commentId, postId) => {
-    try {
-      // Get the current user
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-      if (userError) throw userError;
-      
-      // Delete the comment
-      const { error } = await supabase
-        .from('comments')
-        .delete()
-        .match({ id: commentId, user_id: user.id });
-        
-      if (error) throw error;
-      
-      // Update local state by removing the deleted comment
-      setComments(prevComments => {
-        const updatedComments = { ...prevComments };
-        if (updatedComments[postId]) {
-          updatedComments[postId] = updatedComments[postId].filter(
-            comment => comment.id !== commentId
-          );
-        }
-        return updatedComments;
-      });
-      
-    } catch (err) {
-      console.error('Error deleting comment:', err);
-      Alert.alert('Napaka', 'Napaka pri brisanju komentarja.');
-    }
-  };
-
-  const renderRightActions = (commentId, userId, postId, progress) => {
-    const trans = progress.interpolate({
-      inputRange: [0, 1],
-      outputRange: [80, 0],
-    });
-    
-    return (
-      <Animated.View 
-        style={[
-          feedStyles.deleteActionContainer,
-          { transform: [{ translateX: trans }] }
-        ]}
-      >
-        <TouchableOpacity
-          style={feedStyles.deleteButton}
-          onPress={() => deleteComment(commentId, postId)}
-        >
-          <Text style={feedStyles.deleteButtonText}>Izbriši</Text>
-        </TouchableOpacity>
-      </Animated.View>
-    );
-  };
-
-  const renderComment = (comment) => {
-    const canDelete = currentUser && currentUser.id === comment.user_id;
-    
-    return (
-      <View style={feedStyles.swipeableCommentContainer}>
-        {/* Separator line with consistent spacing */}
-        <View style={feedStyles.commentSeparatorLine} />
-      
-        <Swipeable
-          renderRightActions={(progress) => 
-            canDelete ? renderRightActions(comment.id, comment.user_id, comment.post_id, progress) : null
-          }
-          friction={2}
-          rightThreshold={40}
-          overshootRight={false}
-        >
-          <View style={[
-            feedStyles.commentItem, 
-            feedStyles.commentItemModified
-          ]} key={comment.id}>
-            <Text style={feedStyles.commentUsername}>{comment.username}</Text>
-            <Text style={feedStyles.commentContent}>{comment.content}</Text>
-          </View>
-        </Swipeable>
-      </View>
-    );
-  };
-
-  const showCommentModal = (postId) => {
-    setSelectedPostForComment(postId);
-    fetchComments(postId);
-    setCommentModalVisible(true);
-  };
-
-  const onRefresh = React.useCallback(async () => {
-    setRefreshing(true);
-    try {
-      await fetchPosts();
-    } catch (err) {
-      console.error('Error refreshing posts:', err);
-    } finally {
-      setRefreshing(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchPosts();
-    fetchUserProfile();
-    fetchLikes();
-    
-    const getCurrentUser = async () => {
-      try {
-        const { data, error } = await supabase.auth.getUser();
-        if (error) throw error;
-        setCurrentUser(data.user);
-      } catch (err) {
-        console.error('Error fetching current user:', err);
-      }
-    };
-    
-    getCurrentUser();
-  }, []);
-
-  useEffect(() => {
-    const keyboardWillShowListener = Keyboard.addListener(
-      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
-      (event) => {
-        LayoutAnimation.configureNext({
-          duration: 250,
-          create: {
-            type: LayoutAnimation.Types.easeInEaseOut,
-            property: LayoutAnimation.Properties.opacity,
-          },
-          update: {
-            type: LayoutAnimation.Types.easeInEaseOut,
-          },
-        });
-        setKeyboardVisible(true);
-      }
-    );
-    
-    const keyboardWillHideListener = Keyboard.addListener(
-      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
-      () => {
-        LayoutAnimation.configureNext({
-          duration: 250,
-          create: {
-            type: LayoutAnimation.Types.easeInEaseOut,
-            property: LayoutAnimation.Properties.opacity,
-          },
-          update: {
-            type: LayoutAnimation.Types.easeInEaseOut,
-          },
-        });
-        setKeyboardVisible(false);
-      }
-    );
-
-    return () => {
-      keyboardWillShowListener.remove();
-      keyboardWillHideListener.remove();
-    };
-  }, []);
+  const {
+    posts,
+    error,
+    refreshing,
+    fetchPosts,
+    toggleLikePost,
+    setSelectedImage,
+    setSelectedPost,
+    handleAddImage,
+    isModalVisible,
+    setIsModalVisible,
+    description,
+    setDescription,
+    rating,
+    setRating,
+    pendingUpload,
+    setPendingUpload,
+    isUploading,
+    setIsUploading,
+    fetchUserProfile,
+    profileData,
+    likedPosts,
+    comments,
+    setCommentText,
+    commentText,
+    commentModalVisible,
+    setCommentModalVisible,
+    selectedPostForComment,
+    setSelectedPostForComment,
+    loadingComments,
+    setLoadingComments,
+    keyboardVisible,
+    setKeyboardVisible,
+    currentUser,
+    setCurrentUser,
+    handleUploadWithDetails,
+    handleDelete,
+    fetchComments,
+  } = useFeedData();
 
   const renderPost = ({ item }) => {
     return (
-      <View style={feedStyles.postContainer}>
-        <Text style={feedStyles.username}>{item.username}</Text>
-        <TouchableOpacity 
-          activeOpacity={1}
-          onPress={() => {
-            console.log('Image pressed for post:', item.id);
-            setSelectedImage(item.image_url);
-            setSelectedPost(item);
-          }}
-        >
-          <View style={{ position: 'relative' }}>
-            <Image 
-              source={{ uri: item.image_url }} 
-              style={feedStyles.image}
-              onLoadStart={() => {
-                // Only show loading on mobile platforms
-                if (Platform.OS !== 'web') {
-                  console.log('Image loading started for post:', item.id);
-                  setLoadingImages(prev => ({
-                    ...prev,
-                    [item.id]: true
-                  }));
-                }
-              }}
-              onLoad={() => {
-                if (Platform.OS !== 'web') {
-                  console.log('Image loaded successfully for post:', item.id);
-                  setLoadingImages(prev => ({
-                    ...prev,
-                    [item.id]: false
-                  }));
-                }
-              }}
-              onLoadEnd={() => {
-                if (Platform.OS !== 'web') {
-                  console.log('Image loading ended for post:', item.id);
-                  setLoadingImages(prev => ({
-                    ...prev,
-                    [item.id]: false
-                  }));
-                }
-              }}
-              onError={(error) => {
-                if (Platform.OS !== 'web') {
-                  console.log('Image failed to load for post:', item.id, error);
-                  setLoadingImages(prev => ({
-                    ...prev,
-                    [item.id]: false
-                  }));
-                }
-              }}
-            />
-            {/* Only show loading animation on mobile platforms */}
-            {Platform.OS !== 'web' && loadingImages[item.id] && (
-              <View style={feedStyles.imageLoadingOverlay}>
-                <ActivityIndicator size="large" color="white" />
-              </View>
-            )}
-          </View>
-        </TouchableOpacity>
-        {item.description && (
-          <Text style={feedStyles.description}>{item.description}</Text>
-        )}
-        {item.rating && (
-          <View style={feedStyles.ratingDisplay}>
-            <Text style={feedStyles.ratingText}>
-              {'★'.repeat(item.rating)}{'☆'.repeat(5-item.rating)}
-            </Text>
-          </View>
-        )}
-        <View style={feedStyles.interactionBar}>
-          <TouchableOpacity 
-            onPress={() => toggleLike(item.id)}
-            style={feedStyles.likeButton}
-          >
-            {likedPosts[item.id] ? (
-              <HeartFilledIcon width={24} height={24} fill="#ff4444" />
-            ) : (
-              <HeartOutlineIcon width={24} height={24} fill="#555" />
-            )}
-          </TouchableOpacity>
-          <Text style={feedStyles.likeCount}>
-            {item.likeCount || 0}
-          </Text>
-          <TouchableOpacity 
-            onPress={() => showCommentModal(item.id)}
-            style={feedStyles.commentButton}
-          >
-            <MyCommentIcon width={20} height={20} fill="#555" />
-          </TouchableOpacity>
-          <Text style={feedStyles.commentCount}>
-            {item.commentCount || 0}
-          </Text>
-        </View>
-      </View>
+      <PostItem 
+        item={item}
+        toggleLikePost={toggleLikePost}
+        setSelectedImage={setSelectedImage}
+        setSelectedPost={setSelectedPost}
+        fetchComments={fetchComments}
+        currentUser={currentUser}
+        profileData={profileData}
+        likedPosts={likedPosts}
+        comments={comments}
+        setCommentText={setCommentText}
+        commentText={commentText}
+        commentModalVisible={commentModalVisible}
+        setCommentModalVisible={setCommentModalVisible}
+        selectedPostForComment={selectedPostForComment}
+        setSelectedPostForComment={setSelectedPostForComment}
+        loadingComments={loadingComments}
+        setLoadingComments={setLoadingComments}
+        keyboardVisible={keyboardVisible}
+        setKeyboardVisible={setKeyboardVisible}
+      />
     );
   };
-
-  const renderRatingStars = () => (
-    <View style={feedStyles.ratingContainer}>
-      {[1, 2, 3, 4, 5].map((star) => (
-        <TouchableOpacity
-          key={star}
-          onPress={() => setRating(star)}
-          style={feedStyles.starButton}
-        >
-          <Text style={[
-            feedStyles.star,
-            { color: star <= rating ? '#FFD700' : '#ccc' }
-          ]}>
-            ★
-          </Text>
-        </TouchableOpacity>
-      ))}
-    </View>
-  );
 
   return (
     <View style={feedStyles.container}>
@@ -785,7 +97,7 @@ export default function Feed() {
         renderItem={renderPost}
         ListEmptyComponent={<Text style={feedStyles.emptyText}>Ni objav za prikaz.</Text>}
         refreshing={refreshing}
-        onRefresh={onRefresh}
+        onRefresh={fetchPosts}
         showsVerticalScrollIndicator={false} 
         contentContainerStyle={{ 
           flexGrow: 1, 
@@ -797,242 +109,45 @@ export default function Feed() {
       </TouchableOpacity>
       {error && <Text style={feedStyles.error}>{error}</Text>}
       
-      <Modal
-        visible={isModalVisible}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setIsModalVisible(false)}
-      >
-        <KeyboardAvoidingView 
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
-          style={{ flex: 1 }}
-        >
-          <View style={feedStyles.modalContainer}>
-            <View style={feedStyles.modalContent}>
-              <Text style={feedStyles.modalTitle}>Dodaj opis in oceno</Text>
-              
-              <TextInput
-                style={feedStyles.input}
-                placeholder="Opiši svojo kavo..."
-                placeholderTextColor="#777"
-                value={description}
-                onChangeText={setDescription}
-                multiline
-                maxLength={200}
-              />
-              
-              {renderRatingStars()}
+      <PostModal 
+        isModalVisible={isModalVisible}
+        setIsModalVisible={setIsModalVisible}
+        description={description}
+        setDescription={setDescription}
+        rating={rating}
+        setRating={setRating}
+        pendingUpload={pendingUpload}
+        setPendingUpload={setPendingUpload}
+        isUploading={isUploading}
+        setIsUploading={setIsUploading}
+        handleUploadWithDetails={handleUploadWithDetails}
+      />
 
-              <View style={feedStyles.modalButtons}>
-                <TouchableOpacity 
-                  style={[feedStyles.button, feedStyles.cancelButton]}
-                  onPress={() => setIsModalVisible(false)}
-                >
-                  <Text style={feedStyles.buttonText}>Prekliči</Text>
-                </TouchableOpacity>
-                
-                <TouchableOpacity 
-                  style={[feedStyles.button, feedStyles.submitButton]}
-                  onPress={handleUploadWithDetails}
-                  disabled={isUploading}
-                >
-                  {isUploading ? (
-                    <ActivityIndicator color="white" />
-                  ) : (
-                    <Text style={feedStyles.buttonText}>Objavi</Text>
-                  )}
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-        </KeyboardAvoidingView>
-      </Modal>
+      <ImageModal 
+        selectedImage={selectedImage}
+        setSelectedImage={setSelectedImage}
+        setSelectedPost={setSelectedPost}
+        profileData={profileData}
+        handleDelete={handleDelete}
+      />
 
-      <Modal
-        visible={!!selectedImage}
-        transparent={true}
-        onRequestClose={() => {
-          setSelectedImage(null);
-          setSelectedPost(null);
-        }}
-      >
-        <TouchableWithoutFeedback
-          onPress={() => {
-            setSelectedImage(null);
-            setSelectedPost(null);
-          }}
-        >
-          <View style={feedStyles.fullImageContainer}>
-            <TouchableWithoutFeedback onPress={(e) => e.stopPropagation()}>
-              <>
-                <TouchableOpacity 
-                  style={feedStyles.closeButton}
-                  onPress={() => {
-                    setSelectedImage(null);
-                    setSelectedPost(null);
-                  }}
-                >
-                  <Text style={feedStyles.closeButtonText}>✕</Text>
-                </TouchableOpacity>
-
-                {selectedPost && selectedPost.username === profileData?.username && (
-                  <TouchableOpacity 
-                    style={feedStyles.deleteButton}
-                    onPress={() => {
-                      Alert.alert(
-                        'Izbriši objavo',
-                        'Ali ste prepričani, da želite izbrisati to objavo?',
-                        [
-                          { text: 'Prekliči', style: 'cancel' },
-                          {
-                            text: 'Izbriši',
-                            onPress: () => handleDelete(selectedPost.id, selectedPost.image_url),
-                            style: 'destructive',
-                          },
-                        ]
-                      );
-                    }}
-                  >
-                    <Text style={feedStyles.deleteButtonText}>Izbriši</Text>
-                  </TouchableOpacity>
-                )}
-
-                {selectedImage && (
-                  <>
-                    <Image
-                      source={{ uri: selectedImage }}
-                      style={feedStyles.fullImage}
-                      resizeMode="contain"
-                      onLoadStart={() => {
-                        // Only show loading on mobile platforms
-                        if (Platform.OS !== 'web') {
-                          setIsImageLoading(true);
-                        }
-                      }}
-                      onLoadEnd={() => {
-                        if (Platform.OS !== 'web') {
-                          setIsImageLoading(false);
-                        }
-                      }}
-                    />
-                    {/* Only show loading animation on mobile platforms */}
-                    {Platform.OS !== 'web' && isImageLoading && (
-                      <View style={feedStyles.imageLoadingContainer}>
-                        <ActivityIndicator size="large" color="white" />
-                      </View>
-                    )}
-                  </>
-                )}
-              </>
-            </TouchableWithoutFeedback>
-          </View>
-        </TouchableWithoutFeedback>
-      </Modal>
-
-      {/* Comment Modal */}
-      <Modal
+      <CommentModal 
         visible={commentModalVisible}
         animationType="slide"
         transparent={true}
         onRequestClose={() => setCommentModalVisible(false)}
-      >
-        <KeyboardAvoidingView 
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
-          style={{ flex: 1 }}
-          keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 25} // Dodaj offset
-        >
-          <TouchableWithoutFeedback
-            onPress={() => {
-              Keyboard.dismiss(); // Skrij tipkovnico ob kliku zunaj
-            }}
-          >
-            <View style={[feedStyles.modalOverlay, { justifyContent: 'flex-end' }]}> {/* Spremeni na flex-end */}
-              <TouchableWithoutFeedback onPress={(e) => e.stopPropagation()}>
-                <View style={[
-                  feedStyles.commentsContainer, // Uporabi commentsContainer namesto modalContent
-                  {
-                    maxHeight: keyboardVisible ? '50%' : '80%', // Dinamična višina
-                    paddingBottom: keyboardVisible ? 10 : 20, // Manj padding ko je tipkovnica vidna
-                  }
-                ]}>
-                  <View style={feedStyles.commentsHeader}>
-                    <Text style={feedStyles.commentsTitle}>Komentarji</Text>
-                    <TouchableOpacity 
-                      style={feedStyles.closeHeaderButton}
-                      onPress={() => {
-                        setCommentModalVisible(false);
-                        setSelectedPostForComment(null);
-                        setCommentText('');
-                        Keyboard.dismiss(); // Skrij tipkovnico
-                      }}
-                    >
-                      <Text style={{fontSize: 20, fontWeight: 'bold'}}>✕</Text>
-                    </TouchableOpacity>
-                  </View>
-                  
-                  <View style={{flex: 1}}> {/* Uporabi flex namesto fiksne višine */}
-                    {loadingComments ? (
-                      <ActivityIndicator size="large" color="#000" style={{marginTop: 20}} />
-                    ) : (
-                      <FlatList
-                        data={comments[selectedPostForComment] || []}
-                        keyExtractor={(item) => item.id?.toString()}
-                        renderItem={({item}) => renderComment(item)}
-                        style={feedStyles.commentsList}
-                        ListEmptyComponent={
-                          <Text style={feedStyles.noCommentsText}>Ni komentarjev.</Text>
-                        }
-                        showsVerticalScrollIndicator={false}
-                        contentContainerStyle={{ paddingBottom: 10 }}
-                      />
-                    )}
-                  </View>
-                  
-                  <View style={[
-                    feedStyles.commentInputContainer,
-                    {
-                      paddingBottom: Platform.OS === 'ios' && keyboardVisible ? 0 : 16, // Manj padding na iOS
-                      marginBottom: Platform.OS === 'web' ? 'env(safe-area-inset-bottom)' : 0,
-                    }
-                  ]}>
-                    <TextInput
-                      style={feedStyles.commentInput}
-                      value={commentText}
-                      onChangeText={setCommentText}
-                      placeholder="Kaj pa ti praviš na kavico..."
-                      multiline={false}
-                      returnKeyType="send"
-                      onSubmitEditing={handleCommentSubmit}
-                      onFocus={() => {
-                        // Scroll to bottom when input is focused
-                        setTimeout(() => {
-                          if (Platform.OS === 'ios') {
-                            // iOS specific handling
-                            setKeyboardVisible(true);
-                          }
-                        }, 100);
-                      }}
-                      onBlur={() => {
-                        // Handle when input loses focus
-                        setTimeout(() => {
-                          setKeyboardVisible(false);
-                        }, 100);
-                      }}
-                    />
-                    <TouchableOpacity 
-                      style={feedStyles.commentSubmitButton}
-                      onPress={handleCommentSubmit}
-                      activeOpacity={0.8}
-                    >
-                      <Text style={feedStyles.commentSubmitButtonText}>Pošlji</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              </TouchableWithoutFeedback>
-            </View>
-          </TouchableWithoutFeedback>
-        </KeyboardAvoidingView>
-      </Modal>
+        selectedPostForComment={selectedPostForComment}
+        setSelectedPostForComment={setSelectedPostForComment}
+        fetchComments={fetchComments}
+        comments={comments}
+        setCommentText={setCommentText}
+        commentText={commentText}
+        handleCommentSubmit={handleCommentSubmit}
+        loadingComments={loadingComments}
+        setLoadingComments={setLoadingComments}
+        keyboardVisible={keyboardVisible}
+        setKeyboardVisible={setKeyboardVisible}
+      />
     </View>
   );
 }
