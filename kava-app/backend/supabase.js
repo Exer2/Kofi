@@ -3,7 +3,6 @@ import 'react-native-url-polyfill/auto';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient } from '@supabase/supabase-js';
 
-
 // Environment variables z multiple fallbacks
 let supabaseUrl, supabaseAnonKey;
 
@@ -21,8 +20,9 @@ if (Platform.OS === 'web') {
     supabaseUrl = REACT_APP_SUPABASE_URL;
     supabaseAnonKey = REACT_APP_SUPABASE_ANON_KEY;
   } catch (error) {
-    console.warn('Could not load @env');
-    // No fallback values - force proper environment setup
+    if (__DEV__) {
+      console.warn('Could not load @env');
+    }
     supabaseUrl = null;
     supabaseAnonKey = null;
   }
@@ -30,13 +30,14 @@ if (Platform.OS === 'web') {
 
 // Validate that environment variables are loaded
 if (!supabaseUrl || !supabaseAnonKey) {
-  console.error('Supabase configuration missing!');
-  console.error('Please ensure the following environment variables are set:');
-  console.error('- REACT_APP_SUPABASE_URL');
-  console.error('- REACT_APP_SUPABASE_ANON_KEY');
+  if (__DEV__) {
+    console.error('Supabase configuration missing!');
+    console.error('Please ensure the following environment variables are set:');
+    console.error('- REACT_APP_SUPABASE_URL');
+    console.error('- REACT_APP_SUPABASE_ANON_KEY');
+  }
   throw new Error('Supabase configuration is missing. Check your environment variables.');
 }
-
 
 // Storage adapter
 const storage = Platform.OS === 'web' ? 
@@ -56,13 +57,11 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     flowType: 'pkce',
   },
   realtime: {
-    enabled: true, // Enable realtime for all platforms
+    enabled: false, // Enable realtime for all platforms
     params: {
       eventsPerSecond: 10,
     },
   },
 });
-
-
 
 export default supabase;
