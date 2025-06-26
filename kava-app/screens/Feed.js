@@ -4,30 +4,21 @@ import {
   Text, 
   FlatList, 
   TouchableOpacity, 
-  Alert,
   Platform,
-  Keyboard,
-  LayoutAnimation,
-  UIManager,
 } from 'react-native';
-import { supabase } from '../backend/supabase'; // ← Dodaj ta import
 import { feedStyles } from '../Styles/feedStyles';
 import useFeedData from '../hooks/useFeedData';
 import PostItem from '../components/PostItem';
 import PostModal from '../components/PostModal';
 import ImageModal from '../components/ImageModal';
 import CommentModal from '../components/CommentModal';
-import { handleImagePicker, handleUpload } from '../utils/imageUtils';
-import { toggleLike, handleCommentSubmit, deleteComment } from '../utils/feedUtils';
-
-// Zamenjaj celotno vsebino Feed.js z novo, krajšo verzijo iz mojega prejšnjega odgovora
 
 export default function Feed() {
   const {
     posts,
     error,
     refreshing,
-    fetchPosts,
+    onRefresh,
     toggleLikePost,
     setSelectedImage,
     setSelectedPost,
@@ -38,12 +29,12 @@ export default function Feed() {
     setDescription,
     rating,
     setRating,
-    pendingUpload,
-    setPendingUpload,
     isUploading,
-    setIsUploading,
-    fetchUserProfile,
+    handleUploadWithDetails,
+    selectedImage,
+    selectedPost,
     profileData,
+    handleDelete,
     likedPosts,
     comments,
     setCommentText,
@@ -53,13 +44,8 @@ export default function Feed() {
     selectedPostForComment,
     setSelectedPostForComment,
     loadingComments,
-    setLoadingComments,
     keyboardVisible,
-    setKeyboardVisible,
     currentUser,
-    setCurrentUser,
-    handleUploadWithDetails,
-    handleDelete,
     fetchComments,
   } = useFeedData();
 
@@ -67,24 +53,17 @@ export default function Feed() {
     return (
       <PostItem 
         item={item}
-        toggleLikePost={toggleLikePost}
-        setSelectedImage={setSelectedImage}
-        setSelectedPost={setSelectedPost}
-        fetchComments={fetchComments}
-        currentUser={currentUser}
-        profileData={profileData}
         likedPosts={likedPosts}
-        comments={comments}
-        setCommentText={setCommentText}
-        commentText={commentText}
-        commentModalVisible={commentModalVisible}
-        setCommentModalVisible={setCommentModalVisible}
-        selectedPostForComment={selectedPostForComment}
-        setSelectedPostForComment={setSelectedPostForComment}
-        loadingComments={loadingComments}
-        setLoadingComments={setLoadingComments}
-        keyboardVisible={keyboardVisible}
-        setKeyboardVisible={setKeyboardVisible}
+        onImagePress={(item) => {
+          setSelectedImage(item.image_url);
+          setSelectedPost(item);
+        }}
+        onLikePress={toggleLikePost}
+        onCommentPress={(postId) => {
+          setSelectedPostForComment(postId);
+          fetchComments(postId);
+          setCommentModalVisible(true);
+        }}
       />
     );
   };
@@ -97,56 +76,63 @@ export default function Feed() {
         renderItem={renderPost}
         ListEmptyComponent={<Text style={feedStyles.emptyText}>Ni objav za prikaz.</Text>}
         refreshing={refreshing}
-        onRefresh={fetchPosts}
+        onRefresh={onRefresh}
         showsVerticalScrollIndicator={false} 
         contentContainerStyle={{ 
           flexGrow: 1, 
-          paddingBottom: Platform.OS === 'web' ? 160 : 80 // Več padding na webu
+          paddingBottom: Platform.OS === 'web' ? 160 : 80
         }}
       />
+      
       <TouchableOpacity style={feedStyles.addButton} onPress={handleAddImage}>
         <Text style={feedStyles.addButtonText}>Objavi kavico</Text>
       </TouchableOpacity>
+      
       {error && <Text style={feedStyles.error}>{error}</Text>}
       
       <PostModal 
-        isModalVisible={isModalVisible}
-        setIsModalVisible={setIsModalVisible}
+        visible={isModalVisible}
         description={description}
         setDescription={setDescription}
         rating={rating}
         setRating={setRating}
-        pendingUpload={pendingUpload}
-        setPendingUpload={setPendingUpload}
         isUploading={isUploading}
-        setIsUploading={setIsUploading}
-        handleUploadWithDetails={handleUploadWithDetails}
+        onClose={() => setIsModalVisible(false)}
+        onSubmit={handleUploadWithDetails}
       />
 
       <ImageModal 
-        selectedImage={selectedImage}
-        setSelectedImage={setSelectedImage}
-        setSelectedPost={setSelectedPost}
+        visible={!!selectedImage}
+        imageUrl={selectedImage}
+        selectedPost={selectedPost}
         profileData={profileData}
-        handleDelete={handleDelete}
+        onClose={() => {
+          setSelectedImage(null);
+          setSelectedPost(null);
+        }}
+        onDelete={handleDelete}
       />
 
       <CommentModal 
         visible={commentModalVisible}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setCommentModalVisible(false)}
-        selectedPostForComment={selectedPostForComment}
-        setSelectedPostForComment={setSelectedPostForComment}
-        fetchComments={fetchComments}
         comments={comments}
-        setCommentText={setCommentText}
         commentText={commentText}
-        handleCommentSubmit={handleCommentSubmit}
+        setCommentText={setCommentText}
+        selectedPostForComment={selectedPostForComment}
         loadingComments={loadingComments}
-        setLoadingComments={setLoadingComments}
         keyboardVisible={keyboardVisible}
-        setKeyboardVisible={setKeyboardVisible}
+        currentUser={currentUser}
+        onClose={() => {
+          setCommentModalVisible(false);
+          setSelectedPostForComment(null);
+          setCommentText('');
+        }}
+        onSubmit={() => {
+          // Handle comment submit logic here
+        }}
+        onDeleteComment={(commentId, postId) => {
+          // Handle delete comment logic here
+        }}
       />
     </View>
   );
