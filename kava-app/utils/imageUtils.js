@@ -44,7 +44,6 @@ export const handleImagePicker = async (setPendingUpload, setIsModalVisible, set
 
 /**
  * Handles uploading the image and post details to Supabase.
- * This version handles web (data URI) and mobile (file URI) differently for robustness.
  */
 export const handleUpload = async ({
   pendingUpload,
@@ -102,13 +101,14 @@ export const handleUpload = async ({
       const base64 = matches[2];
       const fileExt = mimeType.split('/')[1] || 'jpg';
       const fileName = `${user.id}_${Date.now()}.${fileExt}`;
-      filePath = fileName; // Assign to the outer scope variable
+      filePath = fileName;
 
-      const arrayBuffer = decode(base64);
+      const byteArray = decode(base64);
+      const blob = new Blob([byteArray], { type: mimeType });
 
       const result = await supabase.storage
         .from('posts')
-        .upload(filePath, arrayBuffer, {
+        .upload(filePath, blob, {
           contentType: mimeType,
           upsert: false,
           cacheControl: '3600'
