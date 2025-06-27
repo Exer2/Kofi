@@ -81,8 +81,11 @@ export const handleUpload = async ({
 
     if (profileError) throw profileError;
 
-    // 3. Prepare the image for upload
-    const fileExt = pendingUpload.uri.split('.').pop()?.toLowerCase() || 'jpg';
+    
+    const mimeType = pendingUpload.mimeType || 'image/jpeg'; 
+    const fileExt = mimeType.split('/')[1];                  
+   
+
     const fileName = `${user.id}_${Date.now()}.${fileExt}`;
     const filePath = `${fileName}`;
 
