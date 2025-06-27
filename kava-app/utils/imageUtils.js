@@ -1,6 +1,7 @@
 import { Alert, Platform } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { supabase } from '../backend/supabase';
+import { decode } from 'base64-js'; // Import the decoder
 
 /**
  * Handles opening the image picker and setting the selected image.
@@ -43,6 +44,7 @@ export const handleImagePicker = async (setPendingUpload, setIsModalVisible, set
 
 /**
  * Handles uploading the image and post details to Supabase.
+ * This version handles web (data URI) and mobile (file URI) differently for robustness.
  */
 export const handleUpload = async ({
   pendingUpload,
@@ -60,6 +62,8 @@ export const handleUpload = async ({
     Alert.alert('Napaka', 'Slika za objavo ni izbrana.');
     return;
   }
+
+  let filePath; // Define filePath here to be accessible in the whole function scope
 
   try {
     setIsUploading(true);
@@ -81,31 +85,64 @@ export const handleUpload = async ({
 
     if (profileError) throw profileError;
 
-    
-    const mimeType = pendingUpload.mimeType || 'image/jpeg'; 
-    const fileExt = mimeType.split('/')[1];                  
-   
+    // 3. & 4. Prepare and Upload Image
+    const isDataUri = pendingUpload.uri.startsWith('data:');
+    let uploadError;
 
-    const fileName = `${user.id}_${Date.now()}.${fileExt}`;
-    const filePath = `${fileName}`;
+    if (isDataUri && Platform.OS === 'web') {
+      // On WEB, decode the base64 data URI manually.
+      console.log('Handling data URI on web...');
+      const dataUri = pendingUpload.uri;
+      const matches = dataUri.match(/^data:(.+);base64,(.+)$/);
+      if (!matches || matches.length !== 3) {
+        throw new Error('Invalid data URI format on web.');
+      }
+      
+      const mimeType = matches[1];
+      const base64 = matches[2];
+      const fileExt = mimeType.split('/')[1] || 'jpg';
+      const fileName = `${user.id}_${Date.now()}.${fileExt}`;
+      filePath = fileName; // Assign to the outer scope variable
 
-    const response = await fetch(pendingUpload.uri);
-    const blob = await response.blob();
+      const arrayBuffer = decode(base64);
 
-    // 4. Upload image to Supabase Storage
-    console.log('Uploading to Supabase storage...');
-    const { data: uploadData, error: uploadError } = await supabase.storage
-      .from('posts') // Your bucket name
-      .upload(filePath, blob, {
-        contentType: blob.type || `image/${fileExt}`,
-        upsert: false,
-        cacheControl: '3600'
-      });
+      const result = await supabase.storage
+        .from('posts')
+        .upload(filePath, arrayBuffer, {
+          contentType: mimeType,
+          upsert: false,
+          cacheControl: '3600'
+        });
+      uploadError = result.error;
+    } else {
+      // On MOBILE, fetch the local file URI to get a blob.
+      console.log('Handling file URI on mobile...');
+      const mimeType = pendingUpload.mimeType || 'image/jpeg';
+      const fileExt = mimeType.split('/')[1] || 'jpg';
+      const fileName = `${user.id}_${Date.now()}.${fileExt}`;
+      filePath = fileName; // Assign to the outer scope variable
+
+      const response = await fetch(pendingUpload.uri);
+      const blob = await response.blob();
+
+      const result = await supabase.storage
+        .from('posts')
+        .upload(filePath, blob, {
+          contentType: mimeType,
+          upsert: false,
+          cacheControl: '3600'
+        });
+      uploadError = result.error;
+    }
 
     if (uploadError) {
+      console.error('Supabase storage error:', uploadError);
       throw uploadError;
     }
 
+    console.log('Upload successful, file path:', filePath);
+
+    // 5. Get the public URL of the uploaded image
     const { data: urlData } = supabase.storage
       .from('posts')
       .getPublicUrl(filePath);
@@ -113,6 +150,8 @@ export const handleUpload = async ({
     if (!urlData.publicUrl) {
       throw new Error('Napaka pri pridobivanju URL-ja slike.');
     }
+
+    // 6. Save post details to the 'posts' database table
     const { error: insertError } = await supabase
       .from('posts')
       .insert([
@@ -126,6 +165,7 @@ export const handleUpload = async ({
       ]);
 
     if (insertError) {
+      // Attempt to clean up the uploaded file if the database insert fails
       await supabase.storage.from('posts').remove([filePath]);
       throw insertError;
     }
@@ -133,15 +173,18 @@ export const handleUpload = async ({
     console.log('Post saved to database successfully!');
     Alert.alert('Uspeh', 'Vaša kava je bila objavljena!');
 
+    // 7. Reset form and close modal
     setIsModalVisible(false);
     setPendingUpload(null);
     setDescription('');
     setRating(3);
     
+    // 8. Refresh the feed to show the new post
     await fetchPosts();
 
   } catch (error) {
     const errorMessage = error.message || 'Prišlo je do napake pri objavljanju.';
+    console.error('Full error during upload:', error);
     setError(errorMessage);
     Alert.alert('Napaka', errorMessage);
   } finally {
