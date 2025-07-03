@@ -160,14 +160,31 @@ export default function useFeedData() {
   });
 
   const handleDelete = async (postId, image_url) => {
+    console.log('handleDelete v useFeedData pokličan s:', postId, image_url); // Dodaj to
+    
     try {
-      const fileName = image_url.split('/').pop();
+      console.log('Začenjam brisanje...'); // Dodaj to
       
+      const fileName = image_url.split('/').pop();
+      console.log('Ime datoteke za brisanje:', fileName); // Dodaj to
+      
+      // Briši iz storage
       const { error: storageError } = await supabase.storage.from('posts').remove([fileName]);
-      if (storageError) throw storageError;
+      if (storageError) {
+        console.error('Storage napaka:', storageError); // Dodaj to
+        throw storageError;
+      }
+      
+      console.log('Datoteka uspešno izbrisana iz storage'); // Dodaj to
 
+      // Briši iz baze
       const { error: deleteError } = await supabase.from('posts').delete().eq('id', postId);
-      if (deleteError) throw deleteError;
+      if (deleteError) {
+        console.error('Database napaka:', deleteError); // Dodaj to
+        throw deleteError;
+      }
+      
+      console.log('Post uspešno izbrisan iz baze'); // Dodaj to
 
       setSelectedImage(null);
       setSelectedPost(null);

@@ -55,6 +55,7 @@ export default function Feed() {
         item={item}
         likedPosts={likedPosts}
         onImagePress={(item) => {
+          console.log('Setting selectedPost:', item);
           setSelectedImage(item.image_url);
           setSelectedPost(item);
         }}
