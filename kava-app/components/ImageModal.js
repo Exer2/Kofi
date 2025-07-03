@@ -23,6 +23,7 @@ export default function ImageModal({
   setIsImageLoading
 }) {
   const handleDelete = () => {
+    console.log('Brisem objavo:', postId, imageUrl);
     Alert.alert(
       'Izbriši objavo',
       'Ali ste prepričani, da želite izbrisati to objavo?',
