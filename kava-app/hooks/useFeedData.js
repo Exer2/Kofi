@@ -134,7 +134,9 @@ export default function useFeedData() {
   // Handler functions
   const handleAddImage = () => handleImagePicker(setPendingUpload, setIsModalVisible, setError);
   
-  const handleUploadWithDetails = () => handleUpload({
+  const handleUploadWithDetails = () => {
+  console.log('handleUploadWithDetails klican');
+  handleUpload({
     pendingUpload,
     description,
     rating,
@@ -146,6 +148,7 @@ export default function useFeedData() {
     setError,
     fetchPosts
   });
+  };
 
   const toggleLikePost = (postId) => toggleLike({
     postId,

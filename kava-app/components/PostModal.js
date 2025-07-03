@@ -77,7 +77,10 @@ export default function PostModal({
               
               <TouchableOpacity 
                 style={[feedStyles.button, feedStyles.submitButton]}
-                onPress={onSubmit}
+                onPress={() => {
+                  console.log('Objavi gumb pritisnjen');
+                  onSubmit();
+                }}
                 disabled={isUploading}
               >
                 {isUploading ? (
