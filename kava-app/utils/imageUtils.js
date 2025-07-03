@@ -145,7 +145,6 @@ try {
     .from('posts')
     .insert([
       {
-        user_id: user.id,
         username: profileData.username,
         image_url: urlData.publicUrl,
         description: description || null,
@@ -154,8 +153,6 @@ try {
     ]);
 
   if (insertError) {
-    // Attempt to clean up the uploaded file if the database insert fails
-    // Preveri, če je filePath veljaven pred cleanup
     if (filePath) {
       try {
         await supabase.storage.from('posts').remove([filePath]);
