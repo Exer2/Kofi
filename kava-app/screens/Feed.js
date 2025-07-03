@@ -47,6 +47,8 @@ export default function Feed() {
     keyboardVisible,
     currentUser,
     fetchComments,
+    isImageLoading,
+    setIsImageLoading,
   } = useFeedData();
 
   const renderPost = ({ item }) => {
@@ -107,6 +109,8 @@ export default function Feed() {
         image_url={selectedImage}
         selectedPost={selectedPost}
         profileData={profileData}
+        isImageLoading={isImageLoading}
+        setIsImageLoading={setIsImageLoading}
         onClose={() => {
           setSelectedImage(null);
           setSelectedPost(null);
