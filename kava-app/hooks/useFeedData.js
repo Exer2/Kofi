@@ -159,9 +159,9 @@ export default function useFeedData() {
     setError
   });
 
-  const handleDelete = async (postId, imageUrl) => {
+  const handleDelete = async (postId, image_url) => {
     try {
-      const fileName = imageUrl.split('/').pop();
+      const fileName = image_url.split('/').pop();
       
       const { error: storageError } = await supabase.storage.from('posts').remove([fileName]);
       if (storageError) throw storageError;

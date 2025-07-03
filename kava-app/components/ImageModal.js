@@ -14,7 +14,7 @@ import { feedStyles } from '../Styles/feedStyles';
 
 export default function ImageModal({
   visible,
-  imageUrl,
+  image_url,
   selectedPost,
   profileData,
   isImageLoading,
@@ -23,7 +23,7 @@ export default function ImageModal({
   setIsImageLoading
 }) {
   const handleDelete = () => {
-    console.log('Brisem objavo:', selectedPost.id, selectedPost.imageUrl);
+    console.log('Brisem objavo:', selectedPost.id, selectedPost.image_url);
     Alert.alert(
       'Izbriši objavo',
       'Ali ste prepričani, da želite izbrisati to objavo?',
@@ -66,10 +66,10 @@ export default function ImageModal({
                 </TouchableOpacity>
               )}
 
-              {imageUrl && (
+              {image_url && (
                 <>
                   <Image
-                    source={{ uri: imageUrl }}
+                    source={{ uri: image_url }}
                     style={feedStyles.fullImage}
                     resizeMode="contain"
                     onLoadStart={() => {

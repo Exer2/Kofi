@@ -103,7 +103,7 @@ export default function Feed() {
 
       <ImageModal 
         visible={!!selectedImage}
-        imageUrl={selectedImage}
+        image_url={selectedImage}
         selectedPost={selectedPost}
         profileData={profileData}
         onClose={() => {
