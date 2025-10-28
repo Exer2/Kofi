@@ -163,36 +163,63 @@ export default function useFeedData() {
     console.log('handleDelete v useFeedData pokličan s:', postId, image_url); // Dodaj to
     
     try {
-      console.log('Začenjam brisanje...'); // Dodaj to
-      
+      // Preveri, da je image_url veljaven
+      if (!image_url) {
+        throw new Error('image_url je prazen ali undefined');
+      }
+
       const fileName = image_url.split('/').pop();
-      console.log('Ime datoteke za brisanje:', fileName); // Dodaj to
+      console.log('fileName ekstraktiran:', fileName);
       
+      // Preveri, da fileName ni prazen
+      if (!fileName) {
+        throw new Error('fileName je prazen');
+      }
+
       // Briši iz storage
-      const { error: storageError } = await supabase.storage.from('posts').remove([fileName]);
+      console.log('Brisanje iz storage...');
+      const { data: storageData, error: storageError } = await supabase.storage
+        .from('posts')
+        .remove([fileName]);
+      
+      console.log('Storage response data:', storageData);
+      console.log('Storage response error:', storageError);
+      
       if (storageError) {
-        console.error('Storage napaka:', storageError); // Dodaj to
+        console.error('Storage napaka:', storageError);
         throw storageError;
       }
       
-      console.log('Datoteka uspešno izbrisana iz storage'); // Dodaj to
+      console.log('Datoteka uspešno izbrisana iz storage');
 
       // Briši iz baze
-      const { error: deleteError } = await supabase.from('posts').delete().eq('id', postId);
+      console.log('Brisanje iz baze...');
+      const { data: deleteData, error: deleteError } = await supabase
+        .from('posts')
+        .delete()
+        .eq('id', postId);
+      
+      console.log('Database response data:', deleteData);
+      console.log('Database response error:', deleteError);
+      
       if (deleteError) {
-        console.error('Database napaka:', deleteError); // Dodaj to
+        console.error('Database napaka:', deleteError);
         throw deleteError;
       }
       
-      console.log('Post uspešno izbrisan iz baze'); // Dodaj to
+      console.log('Post uspešno izbrisan iz baze');
 
       setSelectedImage(null);
       setSelectedPost(null);
-      fetchPosts();
+      await fetchPosts();
       Alert.alert('Uspeh', 'Objava je bila izbrisana.');
+      console.log('=== BRISANJE USPEŠNO ZAKLJUČENO ===');
     } catch (err) {
-      console.error('Error deleting post:', err);
-      Alert.alert('Napaka', 'Napaka pri brisanju objave.');
+      console.error('=== NAPAKA PRI BRISANJU ===');
+      console.error('Error tip:', err.name);
+      console.error('Error sporočilo:', err.message);
+      console.error('Celotna napaka:', err);
+      Alert.alert('Napaka', `Napaka pri brisanju objave: ${err.message}`);
     }
   };
 
