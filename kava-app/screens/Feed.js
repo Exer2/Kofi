@@ -12,6 +12,7 @@ import PostItem from '../components/PostItem';
 import PostModal from '../components/PostModal';
 import ImageModal from '../components/ImageModal';
 import CommentModal from '../components/CommentModal';
+import { handleCommentSubmit, deleteComment } from '../utils/feedUtils';
 
 export default function Feed() {
   const {
@@ -49,7 +50,32 @@ export default function Feed() {
     fetchComments,
     isImageLoading,
     setIsImageLoading,
+    fetchPosts,
+    setComments
   } = useFeedData();
+
+
+
+    const handleCommentSubmitPress = () => {
+    handleCommentSubmit({
+      commentText,
+      selectedPostForComment,
+      setCommentText,
+      fetchComments,
+      fetchPosts
+    });
+  };
+
+  const handleDeleteCommentPress = (commentId, postId) => {
+    deleteComment({
+      commentId,
+      postId,
+      currentUser,
+      setComments,
+      fetchComments,
+      fetchPosts
+    });
+  };
 
   const renderPost = ({ item }) => {
     return (
@@ -132,12 +158,8 @@ export default function Feed() {
           setSelectedPostForComment(null);
           setCommentText('');
         }}
-        onSubmit={() => {
-          // Handle comment submit logic here
-        }}
-        onDeleteComment={(commentId, postId) => {
-          // Handle delete comment logic here
-        }}
+        onSubmit={handleCommentSubmitPress}
+        onDeleteComment={handleDeleteCommentPress}
       />
     </View>
   );
