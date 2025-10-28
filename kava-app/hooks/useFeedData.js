@@ -160,10 +160,11 @@ export default function useFeedData() {
   });
 
   const handleDelete = async (postId, image_url) => {
-    console.log('handleDelete v useFeedData pokličan s:', postId, image_url); // Dodaj to
+    console.log('=== ZAČETEK BRISANJA ===');
+    console.log('postId:', postId);
+    console.log('image_url:', image_url);
     
     try {
-      // Preveri, da je image_url veljaven
       if (!image_url) {
         throw new Error('image_url je prazen ali undefined');
       }
@@ -171,28 +172,10 @@ export default function useFeedData() {
       const fileName = image_url.split('/').pop();
       console.log('fileName ekstraktiran:', fileName);
       
-      // Preveri, da fileName ni prazen
       if (!fileName) {
         throw new Error('fileName je prazen');
       }
 
-      // Briši iz storage
-      console.log('Brisanje iz storage...');
-      const { data: storageData, error: storageError } = await supabase.storage
-        .from('posts')
-        .remove([fileName]);
-      
-      console.log('Storage response data:', storageData);
-      console.log('Storage response error:', storageError);
-      
-      if (storageError) {
-        console.error('Storage napaka:', storageError);
-        throw storageError;
-      }
-      
-      console.log('Datoteka uspešno izbrisana iz storage');
-
-      // Briši iz baze
       console.log('Brisanje iz baze...');
       const { data: deleteData, error: deleteError } = await supabase
         .from('posts')
@@ -208,6 +191,20 @@ export default function useFeedData() {
       }
       
       console.log('Post uspešno izbrisan iz baze');
+
+      console.log('Brisanje iz storage...');
+      const { data: storageData, error: storageError } = await supabase.storage
+        .from('posts')
+        .remove([fileName]);
+      
+      console.log('Storage response data:', storageData);
+      console.log('Storage response error:', storageError);
+      
+      if (storageError) {
+        console.warn('Storage opozorilo (ni kritično):', storageError);
+      } else {
+        console.log('Datoteka uspešno izbrisana iz storage');
+      }
 
       setSelectedImage(null);
       setSelectedPost(null);
