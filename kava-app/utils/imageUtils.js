@@ -21,7 +21,7 @@ export const handleImagePicker = async (setPendingUpload, setIsModalVisible, set
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       aspect: [1, 1], // Enforce a square aspect ratio
-      quality: 0.8,   // Compress image to 80% quality
+      quality: 0.5,   // Compress image to 50% quality
       allowsMultipleSelection: false,
     });
 
