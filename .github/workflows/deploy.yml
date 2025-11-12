@@ -44,6 +44,35 @@ jobs:
         export EXPO_PUBLIC_SUPABASE_URL="${{ secrets.REACT_APP_SUPABASE_URL }}"
         export EXPO_PUBLIC_SUPABASE_ANON_KEY="${{ secrets.REACT_APP_SUPABASE_ANON_KEY }}"
         npx expo export --platform web --clear
+
+    - name: Add service worker for web push
+      run: |
+        cd kava-app/dist
+        cat > sw.js << 'EOF'
+        self.addEventListener('push', (event) => {
+          let data = {};
+          try { data = event.data ? event.data.json() : {}; } catch (e) {}
+          const title = data.title || 'Nova kavica!';
+          const options = {
+            body: data.body || 'Poglej novo objavo ☕️',
+            icon: 'favicon.png',
+            image: data.image,
+            data: data.data || {},
+          };
+          event.waitUntil(self.registration.showNotification(title, options));
+        });
+
+        self.addEventListener('notificationclick', (event) => {
+          event.notification.close();
+          const url = (event.notification.data && event.notification.data.url) || '/Kofi/';
+          event.waitUntil(clients.matchAll({ type: 'window', includeUncontrolled: true }).then(windowClients => {
+            for (const client of windowClients) {
+              if ('focus' in client) return client.focus();
+            }
+            if (clients.openWindow) return clients.openWindow(url);
+          }));
+        });
+        EOF
         
     - name: Fix paths for GitHub Pages subdirectory
       run: |

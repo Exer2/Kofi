@@ -165,6 +165,21 @@ try {
     throw insertError;
   }
 
+  // Invoke Edge Function (ne blokira UX)
+  try {
+    await supabase.functions.invoke('notify-new-post', {
+      body: {
+        postId: Date.now(),
+        title: `${profileData.username} je objavil novo kavico`,
+        body: description || 'Poglej novo objavo ☕️',
+        image: urlData.publicUrl,
+        url: '/Kofi/'
+      }
+    });
+  } catch (e) {
+    console.warn('notify-new-post failed:', e?.message || e);
+  }
+
   console.log('Post saved to database successfully!');
   Alert.alert('Uspeh', 'Vaša kava je bila objavljena!');
 

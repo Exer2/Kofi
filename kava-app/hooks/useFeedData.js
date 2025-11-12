@@ -3,6 +3,7 @@ import { Alert, Platform, Keyboard, LayoutAnimation, UIManager } from 'react-nat
 import { supabase } from '../backend/supabase';
 import { handleImagePicker, handleUpload } from '../utils/imageUtils';
 import { toggleLike, handleCommentSubmit, deleteComment } from '../utils/feedUtils';
+import { registerWebPush } from '../utils/webPush'
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -81,6 +82,9 @@ export default function useFeedData() {
 
       if (profileError) throw profileError;
       setProfileData(profile);
+
+      // Registriraj web push, ko vemo, da je user prijavljen
+      registerWebPush();
     } catch (err) {
       console.error('Error fetching user profile:', err);
     }
