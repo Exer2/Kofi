@@ -7,8 +7,8 @@ import 'react-native-url-polyfill/auto';
 import { LogBox } from 'react-native';
 import Login from './screens/Login';
 import Register from './screens/Register';
-import Feed from './screens/Feed';
 import Profile from './screens/Profile';
+import MainTabs from './components/MainTabs';
 
 // Add web-specific meta tags and CSS - Več comprehensive kot prej
 if (Platform.OS === 'web') {
@@ -110,12 +110,11 @@ export default function App() {
           }}
         />
         <Stack.Screen 
-          name="Feed" 
-          component={Feed}
+          name="MainTabs" 
+          component={MainTabs}
           options={{ 
-            title: 'Kofi',
-            headerLeft: null, // Remove back button
-            gestureEnabled: false, // Disable swipe back gesture
+            headerShown: false,
+            gestureEnabled: false,
           }}
         />
         <Stack.Screen 

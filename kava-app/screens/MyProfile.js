@@ -7,22 +7,19 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Platform,
-  RefreshControl
+  RefreshControl,
+  Alert
 } from 'react-native';
 import { supabase } from '../backend/supabase';
 import { profileStyles } from '../Styles/profileStyles';
-import { feedStyles } from '../Styles/feedStyles';
 import ImageModal from '../components/ImageModal';
 
-export default function Profile({ route, navigation }) {
-  const { username } = route.params;
-  
+export default function MyProfile() {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
   const [profileData, setProfileData] = useState(null);
-  const [currentUserProfile, setCurrentUserProfile] = useState(null);
   const [weeklyRank, setWeeklyRank] = useState(null);
   const [weeklyCoffeeCount, setWeeklyCoffeeCount] = useState(0);
   
@@ -41,42 +38,36 @@ export default function Profile({ route, navigation }) {
     return monday;
   };
 
-  // Fetch current logged in user's profile
-  const fetchCurrentUserProfile = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('username')
-          .eq('id', user.id)
-          .single();
-        setCurrentUserProfile(profile);
-      }
-    } catch (err) {
-      console.error('Error fetching current user profile:', err);
-    }
-  };
-
-  // Fetch profile data for the viewed user
+  // Fetch current user's profile
   const fetchProfileData = async () => {
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setError('Niste prijavljeni.');
+        setLoading(false);
+        return null;
+      }
+
       const { data, error } = await supabase
         .from('profiles')
         .select('username, bio, avatar_url')
-        .eq('username', username)
+        .eq('id', user.id)
         .single();
       
       if (error) throw error;
       setProfileData(data);
+      return data;
     } catch (err) {
       console.error('Error fetching profile:', err);
       setError('Napaka pri nalaganju profila.');
+      return null;
     }
   };
 
-  // Fetch posts by this user
-  const fetchUserPosts = async () => {
+  // Fetch user's posts
+  const fetchUserPosts = async (username) => {
+    if (!username) return;
+    
     try {
       setError(null);
       
@@ -102,17 +93,17 @@ export default function Profile({ route, navigation }) {
     } catch (err) {
       console.error('Error fetching user posts:', err);
       setError('Napaka pri nalaganju objav.');
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
     }
   };
 
-  // Fetch weekly rank for the viewed user
-  const fetchWeeklyRank = async () => {
+  // Fetch weekly rank
+  const fetchWeeklyRank = async (username) => {
+    if (!username) return;
+
     try {
       const mondayStart = getWeekStart();
 
+      // Get all posts from this week grouped by username
       const { data, error } = await supabase
         .from('posts')
         .select('username, created_at')
@@ -149,10 +140,6 @@ export default function Profile({ route, navigation }) {
 
   // Delete post handler
   const handleDelete = async (postId, image_url) => {
-    console.log('=== ZAČETEK BRISANJA ===');
-    console.log('postId:', postId);
-    console.log('image_url:', image_url);
-    
     try {
       if (!image_url) {
         throw new Error('image_url je prazen ali undefined');
@@ -160,58 +147,68 @@ export default function Profile({ route, navigation }) {
 
       const urlWithoutParams = image_url.split('?')[0];
       const fileName = urlWithoutParams.split('/').pop();
-      console.log('fileName ekstraktiran:', fileName);
       
       if (!fileName) {
         throw new Error('fileName je prazen');
       }
 
-      console.log('Brisanje iz baze...');
       const { error: deleteError } = await supabase
         .from('posts')
         .delete()
         .eq('id', postId);
       
-      if (deleteError) {
-        console.error('Database napaka:', deleteError);
-        throw deleteError;
-      }
-      
-      console.log('Post uspešno izbrisan iz baze');
+      if (deleteError) throw deleteError;
 
-      console.log('Brisanje iz storage...');
       const { error: storageError } = await supabase.storage
         .from('posts')
         .remove([fileName]);
       
       if (storageError) {
-        console.warn('Storage opozorilo (ni kritično):', storageError);
-      } else {
-        console.log('Datoteka uspešno izbrisana iz storage');
+        console.warn('Storage warning:', storageError);
       }
 
       setSelectedImage(null);
       setSelectedPost(null);
-      await fetchUserPosts();
-      console.log('=== BRISANJE USPEŠNO ZAKLJUČENO ===');
+      
+      // Refresh data
+      if (profileData?.username) {
+        await fetchUserPosts(profileData.username);
+        await fetchWeeklyRank(profileData.username);
+      }
+      
+      Alert.alert('Uspeh', 'Objava je bila izbrisana.');
     } catch (err) {
-      console.error('=== NAPAKA PRI BRISANJU ===');
-      console.error('Error:', err.message);
+      console.error('Error deleting:', err);
+      Alert.alert('Napaka', `Napaka pri brisanju: ${err.message}`);
     }
   };
 
-  const onRefresh = useCallback(() => {
+  const loadAllData = async () => {
+    setLoading(true);
+    const profile = await fetchProfileData();
+    if (profile?.username) {
+      await Promise.all([
+        fetchUserPosts(profile.username),
+        fetchWeeklyRank(profile.username)
+      ]);
+    }
+    setLoading(false);
+  };
+
+  const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    fetchUserPosts();
-  }, [username]);
+    if (profileData?.username) {
+      await Promise.all([
+        fetchUserPosts(profileData.username),
+        fetchWeeklyRank(profileData.username)
+      ]);
+    }
+    setRefreshing(false);
+  }, [profileData?.username]);
 
   useEffect(() => {
-    fetchCurrentUserProfile();
-    fetchProfileData();
-    fetchUserPosts();
-    fetchWeeklyRank();
-  }, [username]);
-
+    loadAllData();
+  }, []);
 
   const renderPost = ({ item }) => (
     <TouchableOpacity 
@@ -245,22 +242,21 @@ export default function Profile({ route, navigation }) {
     );
   }
 
+  if (!profileData) {
+    return (
+      <View style={profileStyles.loadingContainer}>
+        <Text style={profileStyles.errorText}>{error || 'Napaka pri nalaganju profila.'}</Text>
+      </View>
+    );
+  }
+
   return (
     <View style={profileStyles.container}>
-      {/* Back Button */}
-      <TouchableOpacity 
-        style={profileStyles.backButton}
-        onPress={() => navigation.goBack()}
-        activeOpacity={0.8}
-      >
-        <Text style={profileStyles.backButtonText}>← Nazaj</Text>
-      </TouchableOpacity>
-
       {/* Profile Header */}
-      <View style={profileStyles.header}>
+      <View style={[profileStyles.header, { paddingTop: Platform.OS === 'ios' ? 60 : 40 }]}>
         <View style={profileStyles.avatarContainer}>
           <Text style={profileStyles.avatarText}>
-            {username?.charAt(0).toUpperCase()}
+            {profileData.username?.charAt(0).toUpperCase()}
           </Text>
         </View>
         <View style={profileStyles.statsContainer}>
@@ -275,7 +271,7 @@ export default function Profile({ route, navigation }) {
         </View>
       </View>
       
-      <Text style={profileStyles.usernameTitle}>@{username}</Text>
+      <Text style={profileStyles.usernameTitle}>@{profileData.username}</Text>
       
       {/* Weekly Rank Badge */}
       {weeklyRank && (
@@ -300,7 +296,7 @@ export default function Profile({ route, navigation }) {
         <Text style={profileStyles.errorText}>{error}</Text>
       ) : posts.length === 0 ? (
         <View style={profileStyles.emptyContainer}>
-          <Text style={profileStyles.emptyText}>Ta uporabnik še ni objavil nobene kavice.</Text>
+          <Text style={profileStyles.emptyText}>Še nisi objavil nobene kavice.</Text>
         </View>
       ) : (
         <FlatList
@@ -327,7 +323,7 @@ export default function Profile({ route, navigation }) {
         visible={!!selectedImage}
         image_url={selectedImage}
         selectedPost={selectedPost}
-        profileData={currentUserProfile}
+        profileData={profileData}
         isImageLoading={isImageLoading}
         setIsImageLoading={setIsImageLoading}
         onClose={() => {

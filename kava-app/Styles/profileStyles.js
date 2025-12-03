@@ -103,6 +103,24 @@ export const profileStyles = StyleSheet.create({
     lineHeight: 20,
   },
   
+  rankBadgeContainer: {
+    marginHorizontal: 20,
+    marginTop: 8,
+    backgroundColor: '#fffaf5',
+    borderWidth: 1,
+    borderColor: '#d2691e',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    alignSelf: 'flex-start',
+  },
+  
+  rankBadgeText: {
+    fontSize: 14,
+    color: '#d2691e',
+    fontWeight: '600',
+  },
+  
   divider: {
     height: 1,
     backgroundColor: '#eee',

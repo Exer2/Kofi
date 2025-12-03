@@ -54,7 +54,7 @@ export default function Login() {
         setError('Napačen email ali geslo.');
         return;
       }
-      navigation.navigate('Feed');
+      navigation.navigate('MainTabs');
     } catch (error) {
       console.error('Login error:', error);
       setError('Prišlo je do napake. Prosimo, poskusite ponovno.');
