@@ -21,11 +21,25 @@ export const profileStyles = StyleSheet.create({
     backgroundColor: '#fff',
   },
   
+  backButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    marginTop: 8,
+  },
+  
+  backButtonText: {
+    fontSize: 16,
+    color: '#d2691e',
+    fontWeight: '600',
+  },
+  
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingTop: 20,
+    paddingTop: 8,
     paddingBottom: 12,
   },
   

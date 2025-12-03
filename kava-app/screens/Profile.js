@@ -160,12 +160,6 @@ export default function Profile({ route, navigation }) {
     fetchUserPosts();
   }, [username]);
 
-  // Update navigation title
-  useEffect(() => {
-    navigation.setOptions({
-      title: `@${username}`,
-    });
-  }, [username, navigation]);
 
   const renderPost = ({ item }) => (
     <TouchableOpacity 
@@ -201,6 +195,15 @@ export default function Profile({ route, navigation }) {
 
   return (
     <View style={profileStyles.container}>
+      {/* Back Button */}
+      <TouchableOpacity 
+        style={profileStyles.backButton}
+        onPress={() => navigation.goBack()}
+        activeOpacity={0.8}
+      >
+        <Text style={profileStyles.backButtonText}>← Nazaj</Text>
+      </TouchableOpacity>
+
       {/* Profile Header */}
       <View style={profileStyles.header}>
         <View style={profileStyles.avatarContainer}>

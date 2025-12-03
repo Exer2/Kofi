@@ -122,8 +122,7 @@ export default function App() {
           name="Profile" 
           component={Profile}
           options={{ 
-            title: 'Profil',
-            headerBackTitleVisible: false 
+            headerShown: false
           }}
         />
       </Stack.Navigator>
