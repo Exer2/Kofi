@@ -14,7 +14,7 @@ import ImageModal from '../components/ImageModal';
 import CommentModal from '../components/CommentModal';
 import { handleCommentSubmit, deleteComment } from '../utils/feedUtils';
 
-export default function Feed() {
+export default function Feed({ navigation }) {
   const {
     posts,
     error,
@@ -92,6 +92,9 @@ export default function Feed() {
           setSelectedPostForComment(postId);
           fetchComments(postId);
           setCommentModalVisible(true);
+        }}
+        onUsernamePress={(username) => {
+          navigation.navigate('Profile', { username });
         }}
       />
     );

@@ -10,13 +10,16 @@ export default function PostItem({
   likedPosts, 
   onImagePress, 
   onLikePress, 
-  onCommentPress 
+  onCommentPress,
+  onUsernamePress
 }) {
   const [isImageLoading, setIsImageLoading] = useState(false);
 
   return (
     <View style={feedStyles.postContainer}>
-      <Text style={feedStyles.username}>{item.username}</Text>
+      <TouchableOpacity onPress={() => onUsernamePress && onUsernamePress(item.username)}>
+        <Text style={[feedStyles.username, { color: '#d2691e' }]}>{item.username}</Text>
+      </TouchableOpacity>
       
       <TouchableOpacity 
         activeOpacity={1}

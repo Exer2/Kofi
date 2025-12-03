@@ -8,6 +8,7 @@ import { LogBox } from 'react-native';
 import Login from './screens/Login';
 import Register from './screens/Register';
 import Feed from './screens/Feed';
+import Profile from './screens/Profile';
 
 // Add web-specific meta tags and CSS - Več comprehensive kot prej
 if (Platform.OS === 'web') {
@@ -115,6 +116,14 @@ export default function App() {
             title: 'Kofi',
             headerLeft: null, // Remove back button
             gestureEnabled: false, // Disable swipe back gesture
+          }}
+        />
+        <Stack.Screen 
+          name="Profile" 
+          component={Profile}
+          options={{ 
+            title: 'Profil',
+            headerBackTitleVisible: false 
           }}
         />
       </Stack.Navigator>
