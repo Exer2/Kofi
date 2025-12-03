@@ -173,7 +173,9 @@ export default function useFeedData() {
         throw new Error('image_url je prazen ali undefined');
       }
 
-      const fileName = image_url.split('/').pop();
+      // Popravljeno: Odstrani query parametre in vzemi samo ime datoteke
+      const urlWithoutParams = image_url.split('?')[0];
+      const fileName = urlWithoutParams.split('/').pop();
       console.log('fileName ekstraktiran:', fileName);
       
       if (!fileName) {
