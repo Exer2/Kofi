@@ -7,6 +7,11 @@ export const profileStyles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#fff',
+    ...(Platform.OS === 'web' && {
+      minHeight: '100vh',
+      maxHeight: '100vh',
+      overflow: 'hidden',
+    }),
   },
   
   loadingContainer: {
@@ -94,6 +99,7 @@ export const profileStyles = StyleSheet.create({
   gridContainer: {
     paddingHorizontal: 12,
     paddingBottom: Platform.OS === 'web' ? 100 : 20,
+    flexGrow: 1,
   },
   
   gridItem: {

@@ -238,6 +238,7 @@ export default function Profile({ route, navigation }) {
           keyExtractor={(item) => item.id?.toString()}
           renderItem={renderPost}
           numColumns={3}
+          style={{ flex: 1 }}
           contentContainerStyle={profileStyles.gridContainer}
           refreshControl={
             <RefreshControl
