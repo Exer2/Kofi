@@ -4,13 +4,13 @@ import {
   View, 
   Image, 
   TouchableOpacity,
-  TouchableWithoutFeedback,
+  Pressable,
   ActivityIndicator,
   Text,
-  Alert,
   Platform
 } from 'react-native';
 import { feedStyles } from '../Styles/feedStyles';
+import { confirmAction } from '../utils/alertHelper';
 
 export default function ImageModal({
   visible,
@@ -23,18 +23,15 @@ export default function ImageModal({
   setIsImageLoading
 }) {
   const handleDelete = () => {
-    console.log('Brisem objavo:', selectedPost.id, selectedPost.image_url);
-    Alert.alert(
+    console.log('Brisem objavo:', selectedPost?.id, selectedPost?.image_url);
+    if (!selectedPost) return;
+    
+    confirmAction(
       'Izbriši objavo',
       'Ali ste prepričani, da želite izbrisati to objavo?',
-      [
-        { text: 'Prekliči', style: 'cancel' },
-        {
-          text: 'Izbriši',
-          onPress: () => onDelete(selectedPost.id, selectedPost.image_url),
-          style: 'destructive',
-        },
-      ]
+      () => {
+        onDelete(selectedPost.id, selectedPost.image_url);
+      }
     );
   };
 
@@ -46,54 +43,64 @@ export default function ImageModal({
       transparent={true}
       onRequestClose={onClose}
     >
-      <TouchableWithoutFeedback onPress={onClose}>
-        <View style={feedStyles.fullImageContainer}>
-          <TouchableWithoutFeedback onPress={(e) => e.stopPropagation()}>
-            <View style={{ flex: 1, width: '100%', alignItems: 'center', justifyContent: 'center' }}>
-              <TouchableOpacity 
-                style={feedStyles.closeButton}
-                onPress={onClose}
-              >
-                <Text style={feedStyles.closeButtonText}>✕</Text>
-              </TouchableOpacity>
+      <Pressable 
+        style={feedStyles.fullImageContainer}
+        onPress={onClose}
+      >
+        <Pressable 
+          style={{ flex: 1, width: '100%', alignItems: 'center', justifyContent: 'center' }}
+          onPress={(e) => {
+            // Prepreči zapiranje modal-a ko klikneš na vsebino
+            e.stopPropagation();
+          }}
+        >
+          <TouchableOpacity 
+            style={feedStyles.closeButton}
+            onPress={onClose}
+            activeOpacity={0.7}
+          >
+            <Text style={feedStyles.closeButtonText}>✕</Text>
+          </TouchableOpacity>
 
-              {canDelete && (
-                <TouchableOpacity 
-                  style={feedStyles.deleteButton}
-                  onPress={handleDelete}
-                >
-                  <Text style={feedStyles.deleteButtonText}>Izbriši</Text>
-                </TouchableOpacity>
-              )}
+          {canDelete && (
+            <TouchableOpacity 
+              style={feedStyles.deleteButton}
+              onPress={(e) => {
+                e.stopPropagation();
+                handleDelete();
+              }}
+              activeOpacity={0.7}
+            >
+              <Text style={feedStyles.deleteButtonText}>Izbriši</Text>
+            </TouchableOpacity>
+          )}
 
-              {image_url && (
-                <>
-                  <Image
-                    source={{ uri: image_url }}
-                    style={feedStyles.fullImage}
-                    resizeMode="contain"
-                    onLoadStart={() => {
-                      if (Platform.OS !== 'web') {
-                        setIsImageLoading(true);
-                      }
-                    }}
-                    onLoadEnd={() => {
-                      if (Platform.OS !== 'web') {
-                        setIsImageLoading(false);
-                      }
-                    }}
-                  />
-                  {Platform.OS !== 'web' && isImageLoading && (
-                    <View style={feedStyles.imageLoadingContainer}>
-                      <ActivityIndicator size="large" color="white" />
-                    </View>
-                  )}
-                </>
+          {image_url && (
+            <View style={{ width: '100%', height: '100%', justifyContent: 'center', alignItems: 'center' }}>
+              <Image
+                source={{ uri: image_url }}
+                style={feedStyles.fullImage}
+                resizeMode="contain"
+                onLoadStart={() => {
+                  if (Platform.OS !== 'web') {
+                    setIsImageLoading(true);
+                  }
+                }}
+                onLoadEnd={() => {
+                  if (Platform.OS !== 'web') {
+                    setIsImageLoading(false);
+                  }
+                }}
+              />
+              {Platform.OS !== 'web' && isImageLoading && (
+                <View style={feedStyles.imageLoadingContainer}>
+                  <ActivityIndicator size="large" color="white" />
+                </View>
               )}
             </View>
-          </TouchableWithoutFeedback>
-        </View>
-      </TouchableWithoutFeedback>
+          )}
+        </Pressable>
+      </Pressable>
     </Modal>
   );
 }

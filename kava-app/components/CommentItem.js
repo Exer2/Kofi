@@ -1,6 +1,7 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, Alert, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, Platform } from 'react-native';
 import { feedStyles } from '../Styles/feedStyles';
+import { confirmAction } from '../utils/alertHelper';
 
 export default function CommentItem({ comment, currentUser, onDeleteComment }) {
   console.log('CommentItem render:', { currentUser, comment_user_id: comment.user_id });
@@ -8,17 +9,12 @@ export default function CommentItem({ comment, currentUser, onDeleteComment }) {
   console.log('canDelete:', canDelete);
   
   const handleDeletePress = () => {
-    Alert.alert(
+    confirmAction(
       'Izbriši komentar',
       'Ali ste prepričani, da želite izbrisati ta komentar?',
-      [
-        { text: 'Prekliči', style: 'cancel' },
-        {
-          text: 'Izbriši',
-          onPress: () => onDeleteComment(comment.id, comment.post_id),
-          style: 'destructive',
-        },
-      ]
+      () => {
+        onDeleteComment(comment.id, comment.post_id);
+      }
     );
   };
 

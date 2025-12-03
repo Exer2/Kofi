@@ -180,7 +180,7 @@ export default function Leaderboard() {
     <View style={leaderboardStyles.container}>
       {/* Header */}
       <View style={leaderboardStyles.header}>
-        <Text style={leaderboardStyles.title}>🏆 Lestvica</Text>
+        <Text style={leaderboardStyles.title}>Lestvica</Text>
         <Text style={leaderboardStyles.weekRange}>{formatWeekRange()}</Text>
       </View>
 

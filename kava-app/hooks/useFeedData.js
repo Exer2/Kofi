@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Alert, Platform, Keyboard, LayoutAnimation, UIManager } from 'react-native';
+import { Platform, Keyboard, LayoutAnimation, UIManager } from 'react-native';
 import { supabase } from '../backend/supabase';
 import { handleImagePicker, handleUpload } from '../utils/imageUtils';
 import { toggleLike, handleCommentSubmit, deleteComment } from '../utils/feedUtils';
-import { registerWebPush } from '../utils/webPush'
+import { registerWebPush } from '../utils/webPush';
+import { showAlert } from '../utils/alertHelper';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -215,14 +216,14 @@ export default function useFeedData() {
       setSelectedImage(null);
       setSelectedPost(null);
       await fetchPosts();
-      Alert.alert('Uspeh', 'Objava je bila izbrisana.');
+      showAlert('Uspeh', 'Objava je bila izbrisana.');
       console.log('=== BRISANJE USPEŠNO ZAKLJUČENO ===');
     } catch (err) {
       console.error('=== NAPAKA PRI BRISANJU ===');
       console.error('Error tip:', err.name);
       console.error('Error sporočilo:', err.message);
       console.error('Celotna napaka:', err);
-      Alert.alert('Napaka', `Napaka pri brisanju objave: ${err.message}`);
+      showAlert('Napaka', `Napaka pri brisanju objave: ${err.message}`);
     }
   };
 

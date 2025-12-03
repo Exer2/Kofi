@@ -7,12 +7,12 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Platform,
-  RefreshControl,
-  Alert
+  RefreshControl
 } from 'react-native';
 import { supabase } from '../backend/supabase';
 import { profileStyles } from '../Styles/profileStyles';
 import ImageModal from '../components/ImageModal';
+import { showAlert } from '../utils/alertHelper';
 
 export default function MyProfile() {
   const [posts, setPosts] = useState([]);
@@ -176,10 +176,10 @@ export default function MyProfile() {
         await fetchWeeklyRank(profileData.username);
       }
       
-      Alert.alert('Uspeh', 'Objava je bila izbrisana.');
+      showAlert('Uspeh', 'Objava je bila izbrisana.');
     } catch (err) {
       console.error('Error deleting:', err);
-      Alert.alert('Napaka', `Napaka pri brisanju: ${err.message}`);
+      showAlert('Napaka', `Napaka pri brisanju: ${err.message}`);
     }
   };
 
