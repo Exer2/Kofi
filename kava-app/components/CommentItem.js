@@ -3,7 +3,9 @@ import { View, Text, TouchableOpacity, Alert, Platform } from 'react-native';
 import { feedStyles } from '../Styles/feedStyles';
 
 export default function CommentItem({ comment, currentUser, onDeleteComment }) {
+  console.log('CommentItem render:', { currentUser, comment_user_id: comment.user_id });
   const canDelete = currentUser && currentUser.id === comment.user_id;
+  console.log('canDelete:', canDelete);
   
   const handleDeletePress = () => {
     Alert.alert(

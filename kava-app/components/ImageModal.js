@@ -49,7 +49,7 @@ export default function ImageModal({
       <TouchableWithoutFeedback onPress={onClose}>
         <View style={feedStyles.fullImageContainer}>
           <TouchableWithoutFeedback onPress={(e) => e.stopPropagation()}>
-            <>
+            <View style={{ flex: 1, width: '100%', alignItems: 'center', justifyContent: 'center' }}>
               <TouchableOpacity 
                 style={feedStyles.closeButton}
                 onPress={onClose}
@@ -90,7 +90,7 @@ export default function ImageModal({
                   )}
                 </>
               )}
-            </>
+            </View>
           </TouchableWithoutFeedback>
         </View>
       </TouchableWithoutFeedback>
