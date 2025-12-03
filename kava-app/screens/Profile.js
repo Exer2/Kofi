@@ -51,7 +51,7 @@ export default function Profile({ route, navigation }) {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('username, created_at')
+        .select('username, bio, avatar_url')
         .eq('username', username)
         .single();
       
@@ -218,13 +218,8 @@ export default function Profile({ route, navigation }) {
       
       <Text style={profileStyles.usernameTitle}>@{username}</Text>
       
-      {profileData?.created_at && (
-        <Text style={profileStyles.memberSince}>
-          Član od {new Date(profileData.created_at).toLocaleDateString('sl-SI', {
-            year: 'numeric',
-            month: 'long'
-          })}
-        </Text>
+      {profileData?.bio && (
+        <Text style={profileStyles.bioText}>{profileData.bio}</Text>
       )}
 
       {/* Divider */}

@@ -76,11 +76,12 @@ export const profileStyles = StyleSheet.create({
     marginTop: 4,
   },
   
-  memberSince: {
-    fontSize: 13,
-    color: '#888',
+  bioText: {
+    fontSize: 14,
+    color: '#666',
     paddingHorizontal: 20,
-    marginTop: 4,
+    marginTop: 8,
+    lineHeight: 20,
   },
   
   divider: {
