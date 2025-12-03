@@ -23,6 +23,7 @@ const PersonIcon = ({ color, size }) => (
 export default function MainTabs() {
   return (
     <Tab.Navigator
+      initialRouteName="FeedTab"
       screenOptions={{
         tabBarActiveTintColor: '#d2691e',
         tabBarInactiveTintColor: '#888',
